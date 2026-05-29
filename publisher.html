@@ -109,7 +109,7 @@ webページがどのような技術で構成するかを自動スキャンし�
 <p><img alt="Pasted image 20260417111339" src="publisher/images/23-Pasted-image-20260417111339.png"></p>
 <p><img alt="Pasted image 20260417111429" src="publisher/images/24-Pasted-image-20260417111429.png"></p>
 <p>saisiesプラグインが有効かどうかを確認する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl -I http://10.48.155.207
 HTTP/1.1 200 OK
 Date: Fri, 17 Apr 2026 02:17:14 GMT
@@ -122,7 +122,7 @@ Vary: Accept-Encoding
 Content-Type: text/html
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl -I http://10.48.155.207/spip
 HTTP/1.1 301 Moved Permanently
 Date: Fri, 17 Apr 2026 02:17:24 GMT
@@ -131,12 +131,12 @@ Location: http://10.48.155.207/spip/
 Content-Type: text/html; charset=iso-8859-1
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 
 </code></pre>
 <p>aiに少し聞くと/spip/local/config.txtを調べるとよいと言われたので調べてみた</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl -I http://10.48.155.207/spip/?page=plan                                                     
 HTTP/1.1 200 OK
 Date: Fri, 17 Apr 2026 02:21:48 GMT
@@ -150,7 +150,7 @@ Connection: close
 Content-Type: text/html; charset=utf-8
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl -I http://10.48.155.207/spip/local/config.txt                                               
 HTTP/1.1 200 OK
 Date: Fri, 17 Apr 2026 02:21:58 GMT
@@ -163,11 +163,11 @@ Vary: Accept-Encoding
 Content-Type: text/plain
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl  http://10.48.155.207/spip/local/config.txt 
 Composed-By: SPIP @ www.spip.net + spip(4.2.0),aide(3.1.0),archiviste(2.2.0),compagnon(3.1.0),dump(2.1.0),images(4.1.0),forum(3.1.0),mediabox(3.1.0),mots(4.1.0),plan(4.1.0),porte_plume(3.1.1),revisions(3.1.0),safehtml(3.1.0),sites(4.1.0),stats(3.1.1),tw(3.1.1),urls(4.1.0),iterateurs(1.0.6),queue(0.6.8),jquery(3.6.3),csstidy(1.15.1),minidoc(1.0.3),ordoc(1.1.2),mejs(4.2.7),bigup(3.2.1),compresseur(2.1.1),medias(4.1.0),svp(3.1.1)
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 
 

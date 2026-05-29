@@ -28,7 +28,7 @@
     <div class="stub-banner"><strong>途中経過メモ:</strong> Obsidian のノートをそのまま公開しています。内容は未完成の可能性があります。</div>
     <article class="writeup-body">
       <p><code>nmap</code>を実施する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.48.188.164 -p- -T4
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-19 09:51 +0900
 Nmap scan report for 10.48.188.164
@@ -56,7 +56,7 @@ Hint: Don't forget to add the 10.48.188.164 in /etc/hosts for futurevera.thm ; 
 ::1     localhost ip6-localhost ip6-loopback
 ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
-127.0.2.1 rkametani-1-kalija.2603 rkametani-1-kalija
+127.0.2.1 kali-1-kalija.2603 kali-1-kalija
 10.48.188.164 futurevera.thm
 </code></pre>
 <p>これで追加できた<br>
@@ -96,7 +96,7 @@ ff02::2 ip6-allrouters
 <p>ウェブサイトにアクセスした際に取り組める事項は上記のようにまとめられる<br>
 ８０番のほうはほとんど情報がなく４４３番を狙う<br>
 <code>-k</code>でhttpsによる自己署名証明書をスキップできる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ feroxbuster -u https://10.49.133.25 -k
 
  ___  ___  __   __     __      __         __   ___
@@ -138,11 +138,11 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 [####################] - 1s     30000/30000   25338/s https://10.49.133.25/js/ =&gt; Directory listing (add --scan-dir-listings to scan)
 [####################] - 1s     30000/30000   28090/s https://10.49.133.25/assets/ =&gt; Directory listing (add --scan-dir-listings to scan)
 [####################] - 2s     30000/30000   14720/s https://10.49.133.25/assets/img/ =&gt; Directory listing (add --scan-dir-listings to scan)                                                                                                
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>とくに情報が得られなかったので手順を上から考えたときに続いてサブドメイン列挙を試みる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ gobuster dns --domain futurevera.thm -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt 
 ===============================================================
 Gobuster v3.8.2
@@ -165,12 +165,12 @@ Progress: 114442 / 114442 (100.00%)
 Finished
 ===============================================================
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>２つのサブドメインが見つかった。<code>--domain</code>で親ドメインを指定している</p>
 <p>gobusterではなくffufも使ってみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ ffuf -H &quot;Host: FUZZ.futurevera.thm&quot; -u https://10.49.133.25 -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt -fs 0,4605
 
         /'___\  /'___\           /'___\       
@@ -199,12 +199,12 @@ support                 [Status: 200, Size: 1522, Words: 367, Lines: 34, Duratio
 blog                    [Status: 200, Size: 3838, Words: 1326, Lines: 81, Duration: 132ms]
 :: Progress: [114442/114442] :: Job [1/1] :: 289 req/sec :: Duration: [0:06:24] :: Errors: 0 ::
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>同じように２つがとれた。<code>fs 0,4605</code>でレスポンスのサイズからレスポンスをフィルタかけている。これでヒットだけを表示できる。</p>
 <p>名前解決のため<code>/etc/hosts</code>に２つの情報をいれておく</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ cat /etc/hosts
 127.0.0.1       localhost
 127.0.1.1       kali.2603.tpl   kali
@@ -213,11 +213,11 @@ blog                    [Status: 200, Size: 3838, Words: 1326, Lines: 81, Durati
 ::1     localhost ip6-localhost ip6-loopback
 ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
-127.0.2.1 rkametani-1-kalija.2603 rkametani-1-kalija
+127.0.2.1 kali-1-kalija.2603 kali-1-kalija
 10.49.133.25 futurevera.thm
 10.49.133.25 blog.futurevera.thm support.futurevera.thm
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 
 </code></pre>

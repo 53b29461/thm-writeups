@@ -38,6 +38,10 @@ WIKI_PATTERN = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 FENCE_PATTERN = re.compile(r"(```.*?```)", re.DOTALL)
 
 
+def anonymize(text: str) -> str:
+    return text.replace("rkametani", "kali")
+
+
 def extract_card_desc(text: str, max_len: int = 100) -> str:
     """First meaningful line from the note — not a summary."""
     for line in text.splitlines():
@@ -282,7 +286,7 @@ def build_room(room: dict) -> dict:
         print(f"SKIP {room['slug']}: missing {md_path}")
         return room
 
-    raw = md_path.read_text(encoding="utf-8").strip()
+    raw = anonymize(md_path.read_text(encoding="utf-8").strip())
     if not raw:
         print(f"SKIP {room['slug']}: empty markdown")
         return room

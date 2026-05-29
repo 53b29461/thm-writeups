@@ -194,21 +194,21 @@ Nmap done: 1 IP address (1 host up) scanned in 71.49 seconds
 <img alt="Pasted image 20260527100414" src="lianyu/images/02-Pasted-image-20260527100414.png"><br>
 ftpログインを試してみるとこのユーザー名のアカウントが存在した<br>
 パスワードは分からない</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ ftp 10.49.165.104          
 Connected to 10.49.165.104.
 220 (vsFTPd 3.0.2)
-Name (10.49.165.104:rkametani): anonymous
+Name (10.49.165.104:kali): anonymous
 530 Permission denied.
 ftp: Login failed
 ftp&gt; exit
 221 Goodbye.
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ ftp 10.49.165.104
 Connected to 10.49.165.104.
 220 (vsFTPd 3.0.2)
-Name (10.49.165.104:rkametani): vigilante
+Name (10.49.165.104:kali): vigilante
 331 Please specify the password.
 Password: 
 530 Login incorrect.
@@ -217,17 +217,17 @@ ftp&gt;
 ftp&gt; exit
 221 Goodbye.
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ ftp 10.49.165.104
 Connected to 10.49.165.104.
 220 (vsFTPd 3.0.2)
-Name (10.49.165.104:rkametani): aaaaaa
+Name (10.49.165.104:kali): aaaaaa
 530 Permission denied.
 ftp: Login failed
 ftp&gt; exit
 221 Goodbye.
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>RPCとはremote procedure callで「リモートのプログラムを呼び出せる仕組み」</p>
@@ -237,7 +237,7 @@ ftp&gt; exit
 rpcbindが動いているということはNFS共有が公開されている可能性が高い<br>
 NFSはIPさえあれば誰でも読める設定になっていることが多く<br>
 ssh鍵や他のクレデンシャルが落ちていることが多い</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ showmount -e 10.49.165.104
 clnt_create: RPC: Program not registered
 </code></pre>
@@ -276,7 +276,7 @@ clnt_create: RPC: Program not registered
 <p><code>/usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-big.txt</code>という大きなワードリストがある<br>
 これにはディレクトリ名もファイル名も入っている<br>
 /etc/feroxbuster/ferox-config.tomlを編集してデフォルトワードリストに設定する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ feroxbuster -u http://10.49.165.104/island/ -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-big.txt  
 
  ___  ___  __   __     __      __         __   ___
@@ -304,7 +304,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 301      GET        7l       20w      241c http://10.49.165.104/island/2100 =&gt; http://10.49.165.104/island/2100/
 </code></pre>
 <p>/island/2100が見つかった</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl http://10.49.165.104/island/2100/ -s
 &lt;!DOCTYPE html&gt;
 &lt;html&gt;
@@ -324,7 +324,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 </code></pre>
 <p>GUIでは確認できなかったコメントを発見した</p>
 <p><code>-x ticket</code>で拡張子を指定して再度feroxしてみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ feroxbuster -u http://10.49.165.104/island/2100/ -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-big.txt -x ticket
 
  ___  ___  __   __     __      __         __   ___
@@ -368,7 +368,7 @@ crackstationにかけても見つからない</p>
 今回の文字列がその条件に適合しているため、試す価値がある</p>
 <p>としてデコードしたのが<code>!#th3h00d</code>でありこれでftpが通る<br>
 ありえなさすぎる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ ftp vigilante@10.49.165.104                                  
 Connected to 10.49.165.104.
 220 (vsFTPd 3.0.2)
@@ -411,7 +411,7 @@ ftp&gt; exit
 <p>ftpログインに成功し３つの画像ファイルを持ち出すことに成功した<br>
 それぞれ解析していく</p>
 <pre><code class="language-bash">
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ exiftool Leave_me_alone.png 
 ExifTool Version Number         : 13.55
 File Name                       : Leave_me_alone.png
@@ -423,7 +423,7 @@ File Inode Change Date/Time     : 2026:05:27 11:51:31+09:00
 File Permissions                : -rw-rw-r--
 Error                           : File format error
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ exiftool Queen\'s_Gambit.png 
 ExifTool Version Number         : 13.55
 File Name                       : Queen's_Gambit.png
@@ -449,7 +449,7 @@ Orientation                     : Horizontal (normal)
 Image Size                      : 1280x720
 Megapixels                      : 0.922
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ exiftool aa.jpg 
 ExifTool Version Number         : 13.55
 File Name                       : aa.jpg
@@ -475,11 +475,11 @@ Y Cb Cr Sub Sampling            : YCbCr4:2:0 (2 2)
 Image Size                      : 1200x1600
 Megapixels                      : 1.9
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ 
 </code></pre>
 <p>１つ目のファイルが<code>File format error</code>なので別の拡張子かもしれない</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ file Leave_me_alone.png Queen\'s_Gambit.png aa.jpg 
 Leave_me_alone.png: data
 Queen's_Gambit.png: PNG image data, 1280 x 720, 8-bit/color RGBA, non-interlaced
@@ -488,7 +488,7 @@ aa.jpg:             JPEG image data, JFIF standard 1.01, aspect ratio, density 1
 </code></pre>
 <p>fileコマンドを使うとやはりpngではない<br>
 xxdコマンドで見てみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ xxd Leave_me_alone.png | head -5
 00000000: 5845 6fae 0a0d 1a0a 0000 000d 4948 4452  XEo.........IHDR
 00000010: 0000 034d 0000 01db 0806 0000 0017 a371  ...M...........q
@@ -496,61 +496,61 @@ xxdコマンドで見てみる</p>
 00000030: 4b6e 2508 33f7 e092 6466 dea5 557b 6934  Kn%.3...df..U{i4
 00000040: 6a69 54fd f573 cebc c03c 9c7e b4d4 a556  jiT..s...&lt;.~...V
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ 
 </code></pre>
 <p>先頭8バイトはPNGシグネチャを示していないが<code>IDAT</code>という画像データを表す文字列が確認できることから<br>
 先頭を修復せんとしてみむ</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ xxd Leave_me_alone.png &gt; fix.hex
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ vim fix.hex  
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ xxd -r fix.hex &gt; Leave_me_alone.png 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ file Leave_me_alone.png                           
 Leave_me_alone.png: PNG image data, 845 x 475, 8-bit/color RGBA, non-interlaced
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ 
 </code></pre>
 <p>vimで直接編集した<br>
 そしてなおった<br>
 <img alt="Pasted image 20260527130926" src="lianyu/images/03-Pasted-image-20260527130926.png"><br>
 ふざけてるな</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ steghide extract -sf Leave_me_alone.png
 Enter passphrase: 
 steghide: the file format of the file &quot;Leave_me_alone.png&quot; is not supported.
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ steghide extract -sf Queen\'s_Gambit.png 
 Enter passphrase: 
 steghide: the file format of the file &quot;Queen's_Gambit.png&quot; is not supported.
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ steghide extract -sf aa.jpg             
 Enter passphrase: 
 wrote extracted data to &quot;ss.zip&quot;.
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ ls
  Leave_me_alone.png  &quot;Queen's_Gambit.png&quot;   aa.jpg   fix.hex   ss.zip
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ unzip ss.zip  
 Archive:  ss.zip
   inflating: passwd.txt              
   inflating: shado                   
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ ls
  Leave_me_alone.png  &quot;Queen's_Gambit.png&quot;   aa.jpg   fix.hex   passwd.txt   shado   ss.zip
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ cat passwd.txt                     
 This is your visa to Land on Lian_Yu # Just for Fun ***
 
@@ -568,11 +568,11 @@ wild pigs and wolves.
 
 
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ file shado             
 shado: Clarion Developer (v2 and above) memo data
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ cat shado     
 M3tahuman
 </code></pre>
@@ -580,7 +580,7 @@ M3tahuman
 <code>passwd.txt</code>と<code>shado</code>を得た</p>
 <p>（詰まったので答え見た）<br>
 さっき入ったftp先を見るのがよいらしい</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ ftp vigilante@10.49.165.104
 Connected to 10.49.165.104.
 220 (vsFTPd 3.0.2)
@@ -611,7 +611,7 @@ ftp&gt; exit
 <p>よくみるとvigilante以外のユーザーがいる<br>
 こいつでM3tahumanを試す</p>
 <p>sshで入れました</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lianyu]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/lianyu]
 └─$ ssh slade@10.49.165.104         
 ** WARNING: connection is not using a post-quantum key exchange algorithm.
 ** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.

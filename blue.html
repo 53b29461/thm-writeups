@@ -28,7 +28,7 @@
     
     <article class="writeup-body">
       <p>疎通を確認</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ ping 10.48.144.95    
 PING 10.48.144.95 (10.48.144.95) 56(84) bytes of data.
 64 bytes from 10.48.144.95: icmp_seq=1 ttl=126 time=130 ms
@@ -39,11 +39,11 @@ PING 10.48.144.95 (10.48.144.95) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 2003ms
 rtt min/avg/max/mdev = 128.807/129.234/129.890/0.470 ms
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>つぎに<code>namp</code>を実施</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.48.144.95
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-12 08:29 +0900
 Nmap scan report for 10.48.144.95
@@ -61,7 +61,7 @@ PORT      STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 4.26 seconds
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>これを見て思うことは<br>
@@ -69,7 +69,7 @@ Nmap done: 1 IP address (1 host up) scanned in 4.26 seconds
 2. SMB(445)が稼働しているということ（狙いやすい）<br>
 3. Room名から「EthernalBlue」をメタ読み</p>
 <p>ということでSMBのバージョンを取りに行く</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.48.144.95 -p 445 --script smb-protocols
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-12 08:37 +0900
 Nmap scan report for 10.48.144.95
@@ -87,7 +87,7 @@ Host script results:
 
 Nmap done: 1 IP address (1 host up) scanned in 1.86 seconds
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─
 </code></pre>
 <p>SMBv1であることが分かった<br>
@@ -103,7 +103,7 @@ googleなどで「Ethernalblue ms番号」と検索すれば答えがでくる<b
 例の場合には、2008年に発見された67番目の脆弱性であることを指している</p>
 <p>[追記]<br>
 やっぱりググらない方法を記載しておく</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.48.134.187 --script=vuln -p 135,139,445
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-12 13:17 +0900
 Nmap scan report for 10.48.134.187
@@ -135,7 +135,7 @@ Host script results:
 
 Nmap done: 1 IP address (1 host up) scanned in 26.11 seconds
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>これにより<code>ms17-010</code>を得ることが出来た</p>
@@ -587,25 +587,25 @@ meterpreterではSYSTEM権限と内部APIを使ってレジストリ経由でこ
 アカウント識別子は、500=Adminstrator、501=Guest、1000以降=作成純のローカルユーザである<br>
 クラック対象は<code>NTハッシュ</code>である。<code>Jon</code>のNTハッシュを<code>hash.txt</code>に保存してローカルkaliで解析する</p>
 <p>まず<code>gunzip rockyou.txt.gz</code>で展開しておく</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/blue]
 └─$ ls /usr/share/wordlists/
 john.lst  metasploit  nmap.lst  rockyou.txt.gz  seclists  sqlmap.txt
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/blue]
 └─$ sudo gunzip /usr/share/wordlists/rockyou.txt.gz 
-[sudo] rkametani のパスワード:
+[sudo] kali のパスワード:
 残念、また試してください。
-[sudo] rkametani のパスワード:
+[sudo] kali のパスワード:
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/blue]
 └─$ ls /usr/share/wordlists/                       
 john.lst  metasploit  nmap.lst  rockyou.txt  seclists  sqlmap.txt
 
-┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+┌──(kali㉿kali-1-kalija)-[~/tryhackme/blue]
 └─$ 
 </code></pre>
 <p>用意できたのでJohn the Ripperでハッシュをクラックする</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/blue]
 └─$ john hash.txt --format=NT --wordlist=/usr/share/wordlists/rockyou.txt 
 Using default input encoding: UTF-8
 Loaded 1 password hash (NT [MD4 512/512 AVX512BW 16x3])

@@ -28,7 +28,7 @@
     
     <article class="writeup-body">
       <p><code>nmap</code>を実施</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nmap 10.48.161.175 -T4 -p-
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-18 09:21 +0900
 Nmap scan report for 10.48.161.175
@@ -44,7 +44,7 @@ Nmap done: 1 IP address (1 host up) scanned in 46.15 seconds
 <p><code>ssh</code>と<code>http</code>が開いている<br>
 また8000番に<code>http-alt</code>というサービスがopenしている</p>
 <p><code>feroxbuster</code>を実施したがめぼしい結果は得られず</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ feroxbuster -u http://10.49.138.219
 
  ___  ___  __   __     __      __         __   ___
@@ -75,7 +75,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 </code></pre>
 <p><code>10.49.138.219</code>の後ろにポート番号を明示しなかった場合、URLスキームにしたがって<code>http://</code>は８０番ポートを見る<br>
 今回は８０００番ポートにもhttpがあるので明示して調べる</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ feroxbuster -u http://10.49.138.219:8000
 
  ___  ___  __   __     __      __         __   ___
@@ -130,7 +130,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 <img alt="Pasted image 20260518152557" src="bolt/images/04-Pasted-image-20260518152557.png"></p>
 <p>これをもとにいったん脆弱性を検索してみる<br>
 まず<code>searchsploit</code>はバージョン情報的に有益なものはなさそうであった</p>
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ searchsploit bolt                          
 ------------------------------------------------------------------ ---------------------------------
  Exploit Title                                                    |  Path
@@ -149,7 +149,7 @@ CMS Bolt - Arbitrary File Upload (Metasploit)                     | php/remote/3
 ------------------------------------------------------------------ ---------------------------------
 Shellcodes: No Results
 
-┌──(rkametani㉿rkametani-1-kalija)-[~]
+┌──(kali㉿kali-1-kalija)-[~]
 └─$ 
 </code></pre>
 <p>どうやらthmの問題文に従うと、この<code>3.7.0</code>にRCEエクスプロイトを使うらしい</p>
