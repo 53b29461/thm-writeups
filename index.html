@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THM AI Writeups</title>
+  <style>
+    :root {
+      --bg: #0c1222;
+      --panel: #121a2f;
+      --text: #ecf2ff;
+      --muted: #a8b3cc;
+      --accent: #46d369;
+      --accent-2: #61dafb;
+      --border: rgba(255, 255, 255, 0.12);
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(70, 211, 105, 0.18), transparent 28rem),
+        radial-gradient(circle at top right, rgba(97, 218, 251, 0.14), transparent 26rem),
+        var(--bg);
+    }
+
+    a { color: var(--accent-2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .hero {
+      padding: 4rem 1.25rem 3rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 7vw, 3.5rem);
+      letter-spacing: 0.04em;
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: 1rem auto 0;
+      color: var(--muted);
+    }
+
+    main {
+      width: min(760px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .writeup-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .writeup-card {
+      display: block;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(18, 26, 47, 0.82);
+      box-shadow: 0 18px 50px var(--shadow);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .writeup-card:hover {
+      border-color: rgba(97, 218, 251, 0.45);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    .writeup-card h2 {
+      margin: 0 0 0.5rem;
+      color: var(--accent);
+      font-size: 1.5rem;
+    }
+
+    .writeup-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .tag {
+      padding: 0.25rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    footer {
+      padding: 2rem 1rem;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <h1>THM AI Writeups</h1>
+    <p>TryHackMe room walkthroughs created with AI assistance. For authorized lab practice and learning only.</p>
+  </header>
+
+  <main>
+    <div class="writeup-list">
+      <a class="writeup-card" href="lianyu.html">
+        <h2>Lian_Yu</h2>
+        <p>Enumeration, FTP, steganography, SSH access, and privilege escalation via pkexec.</p>
+        <div class="tags">
+          <span class="tag">English</span>
+          <span class="tag">Easy</span>
+          <span class="tag">Linux</span>
+        </div>
+      </a>
+
+      <a class="writeup-card" href="overpass.html">
+        <h2>Overpass</h2>
+        <p>Cookie-based auth bypass, SSH key cracking, cron job abuse via /etc/hosts poisoning.</p>
+        <div class="tags">
+          <span class="tag">日本語</span>
+          <span class="tag">Easy</span>
+          <span class="tag">Linux</span>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    <p><a href="https://github.com/53b29461/thm-ai-writeups">GitHub Repository</a></p>
+  </footer>
+</body>
+</html>
