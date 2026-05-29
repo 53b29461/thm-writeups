@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parent.parent
 
 # Metadata only — body text comes straight from Obsidian, untouched.
 ROOMS = [
-    {"slug": "publisher", "md": "001 Publisher/001 Publisher.md", "title": "Publisher", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/publisher", "difficulty": "Medium", "target": "Linux", "status": "complete"},
+    {"slug": "publisher", "md": "001 Publisher/001 Publisher.md", "title": "Publisher", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/publisher", "difficulty": "Medium", "target": "Linux", "status": "complete", "publish": False},
     {"slug": "vulnversity", "md": "002 Vulnvresity/002 Vulnvresity.md", "title": "Vulnversity", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/vulnversity", "difficulty": "Easy", "target": "Linux", "status": "complete"},
     {"slug": "blue", "md": "003 Blue/003 Blue.md", "title": "Blue", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/blue", "difficulty": "Easy", "target": "Windows", "status": "complete"},
     {"slug": "simple-ctf", "md": "004 Simple CTF/004 Simple CTF.md", "title": "Simple CTF", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/simplectf", "difficulty": "Easy", "target": "Linux", "status": "complete"},
@@ -38,8 +38,14 @@ WIKI_PATTERN = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 FENCE_PATTERN = re.compile(r"(```.*?```)", re.DOTALL)
 
 
+# Attacker-side addresses (tun0 / LHOST) — not target lab IPs.
+TUN0_IP_PLACEHOLDER = "10.10.14.5"
+
+
 def anonymize(text: str) -> str:
-    return text.replace("rkametani", "kali")
+    text = text.replace("rkametani", "kali")
+    text = text.replace("192.168.205.211", TUN0_IP_PLACEHOLDER)
+    return text
 
 
 def extract_card_desc(text: str, max_len: int = 100) -> str:
@@ -280,16 +286,36 @@ def render_readme(all_rooms: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def build_room(room: dict) -> dict:
+def is_published(room: dict) -> bool:
+    return room.get("publish", True)
+
+
+def remove_unpublished_artifacts(slug: str) -> None:
+    page = REPO / f"{slug}.html"
+    if page.exists():
+        page.unlink()
+        print(f"  removed unpublished: {page.name}")
+    assets = REPO / slug
+    if assets.is_dir():
+        shutil.rmtree(assets)
+        print(f"  removed unpublished: {assets.name}/")
+
+
+def build_room(room: dict) -> dict | None:
     md_path = VAULT / room["md"]
     if not md_path.exists():
         print(f"SKIP {room['slug']}: missing {md_path}")
-        return room
+        return None
 
     raw = anonymize(md_path.read_text(encoding="utf-8").strip())
     if not raw:
         print(f"SKIP {room['slug']}: empty markdown")
-        return room
+        return None
+
+    if not is_published(room):
+        print(f"SKIP publish {room['slug']} (local only)")
+        remove_unpublished_artifacts(room["slug"])
+        return None
 
     built = {**room, "desc": extract_card_desc(raw)}
     print(f"BUILD {room['slug']} ({len(raw)} chars)")
@@ -303,11 +329,14 @@ def build_room(room: dict) -> dict:
 
 
 def main() -> None:
-    built_rooms = [build_room(room) for room in ROOMS]
-    built_rooms = [r for r in built_rooms if "desc" in r]
+    built_rooms: list[dict] = []
+    for room in ROOMS:
+        built = build_room(room)
+        if built is not None:
+            built_rooms.append(built)
     (REPO / "index.html").write_text(render_index(built_rooms), encoding="utf-8")
     (REPO / "README.md").write_text(render_readme(built_rooms), encoding="utf-8")
-    print(f"Done. {len(built_rooms)} pages — verbatim from Obsidian.")
+    print(f"Done. {len(built_rooms)} published pages — verbatim from Obsidian.")
 
 
 if __name__ == "__main__":
