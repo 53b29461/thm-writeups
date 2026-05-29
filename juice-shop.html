@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe OWASP Juice Shop Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>OWASP Juice Shop</h1>
+    <p>OWASP Top 10 入門ルーム（Web アクセス未完了のメモ）。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    <div class="stub-banner"><strong>未完成メモ:</strong> Obsidian のノートをそのまま公開しています。内容は未完成の可能性があります。</div>
+    <article class="writeup-body">
+      <p>Within this room, we will look at <a href="https://owasp.org/www-project-top-ten/">OWASP's TOP 10 vulnerabilities(opens in new tab)</a> in web applications. You will find these in all types of web applications. But for today we will be looking at OWASP's own creation, Juice Shop!</p>
+<pre><code class="language-nmap">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.142.254 -T4 -p-
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-18 08:26 +0900
+Nmap scan report for 10.48.142.254
+Host is up (0.13s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+Nmap done: 1 IP address (1 host up) scanned in 100.86 seconds
+</code></pre>
+<p><code>ssh</code>と<code>http</code>が開いている</p>
+<p>アクセスしてみる<br>
+30分粘ったがアクセスできない</p>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/owaspjuiceshop">https://tryhackme.com/room/owaspjuiceshop</a></p>
+  </footer>
+</body>
+</html>

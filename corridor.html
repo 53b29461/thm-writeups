@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Corridor Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Corridor</h1>
+    <p>MD5 ハッシュ化されたルーム URL、IDOR（room 0）の調査（途中）。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    <div class="stub-banner"><strong>途中経過メモ:</strong> Obsidian のノートをそのまま公開しています。内容は未完成の可能性があります。</div>
+    <article class="writeup-body">
+      <p><code>nmap</code></p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.176.101 -p- -T4         
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-18 15:58 +0900
+Nmap scan report for 10.48.176.101
+Host is up (0.13s latency).
+Not shown: 65534 closed tcp ports (reset)
+PORT   STATE SERVICE
+80/tcp open  http
+
+Nmap done: 1 IP address (1 host up) scanned in 295.94 seconds
+
+</code></pre>
+<p>とりあえずアクセスしてみる<br>
+<img alt="Pasted image 20260518161120" src="corridor/images/01-Pasted-image-20260518161120.png"><br>
+各扉にリンクがあって、クリックすると<br>
+<img alt="Pasted image 20260518161208" src="corridor/images/02-Pasted-image-20260518161208.png"><br>
+こういう部屋に出る<br>
+各部屋のURLは<code>/c4ca4238a0b923820dcc509a6f75849b</code>のようになっており、これはmd5変換された数字であった<br>
+それぞれを変換してみると<br>
+左の部屋から1,2,3,4,5,6,7,13,12,11,10,9,8と割り振られていた<br>
+<code>--script=vuln</code>と<code>feroxbuster</code>をやってみる</p>
+<p>→どちらもダメだった</p>
+<hr>
+<p>0をmd5変換してアクセスしたらいけた<br>
+これをIDORの脆弱性であるというらしい</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/corridor">https://tryhackme.com/room/corridor</a></p>
+  </footer>
+</body>
+</html>

