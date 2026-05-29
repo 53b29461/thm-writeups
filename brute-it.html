@@ -11,7 +11,7 @@
 
   <header class="hero">
     <h1>Brute It</h1>
-    <p>管理画面ブルートフォース、SSH、shadow クラック、su による root 化。</p>
+    <p>Obsidian ノート原文 — 要約・編集なし</p>
     <div class="badges">
       <span class="badge">Platform: TryHackMe</span>
       <span class="badge">Difficulty: Easy</span>
@@ -188,7 +188,7 @@ by Ben &quot;epi&quot; Risher 🤓                 ver: 2.13.1
 </code></pre>
 <p><code>&lt;body&gt;</code>に<code>&lt;p&gt;Username or password invalid&lt;/p&gt;</code>が追記されて返ってきた<br>
 この文言をログイン失敗時の目印としてヒドラを実施する<br>
-<code>hydra -l admin -P /usr/share/wordlists/rockyou.txt 10.48.143.111 http-post-form "/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid"</code></p>
+<code>hydra -l admin -P /usr/share/wordlists/rockyou.txt 10.48.143.111 http-post-form "/admin/:user=^USER^&amp;pass=^PASS^:F=Username or password invalid"</code>  </p>
 <h3>コマンドの構成要素のおさらい</h3>
 <ul>
 <li>

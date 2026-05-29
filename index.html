@@ -38,36 +38,14 @@
 <body>
   <header class="hero">
     <h1>THM AI Writeups</h1>
-    <p>TryHackMe room walkthroughs created with AI assistance. For authorized lab practice and learning only.</p>
+    <p>Obsidian の原文ノートをそのまま公開。要約・編集なし。</p>
   </header>
 
   <main>
     <div class="writeup-list">
-      <a class="writeup-card" href="lianyu.html">
-        <h2>Lian_Yu</h2>
-        <p>Enumeration, FTP, steganography, SSH access, and privilege escalation via pkexec.</p>
-        <div class="tags">
-          <span class="tag">English</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="overpass.html">
-        <h2>Overpass</h2>
-        <p>Cookie-based auth bypass, SSH key cracking, cron job abuse via /etc/hosts poisoning.</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
       <a class="writeup-card" href="publisher.html">
         <h2>Publisher</h2>
-        <p>SPIP CMS RCE、SSH 鍵再利用、Docker/AppArmor 回避、SUID bash による権限昇格。</p>
+        <p>pingで疎通確認を行う</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Medium</span>
@@ -78,7 +56,7 @@
 
       <a class="writeup-card" href="vulnversity.html">
         <h2>Vulnversity</h2>
-        <p>多サービス列挙（FTP/Samba/Squid）、Web シェル、systemd 権限昇格。</p>
+        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-04-24 10:02 +0900</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -89,7 +67,7 @@
 
       <a class="writeup-card" href="blue.html">
         <h2>Blue</h2>
-        <p>Windows SMBv1 列挙、EternalBlue (MS17-010)、Meterpreter によるフラグ取得。</p>
+        <p>疎通を確認</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -100,7 +78,7 @@
 
       <a class="writeup-card" href="simple-ctf.html">
         <h2>Simple CTF</h2>
-        <p>Web/FTP 列挙、隠し CMS 認証情報、SSH、sudo vim GTFOBins。</p>
+        <p>まずはオプションをつけずに`nmap`を実施する</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -111,7 +89,7 @@
 
       <a class="writeup-card" href="bounty-hacker.html">
         <h2>Bounty Hacker</h2>
-        <p>匿名 FTP、Web 列挙、SSH、sudo tar GTFOBins。</p>
+        <p>`nmap --script=vuln`を実施</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -122,7 +100,7 @@
 
       <a class="writeup-card" href="brute-it.html">
         <h2>Brute It</h2>
-        <p>管理画面ブルートフォース、SSH、shadow クラック、su による root 化。</p>
+        <p>`--script=vuln`</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -133,7 +111,7 @@
 
       <a class="writeup-card" href="agent-sudo.html">
         <h2>Agent Sudo</h2>
-        <p>User-Agent 列挙、FTP/ステガノ、SSH、CVE-2019-14287 sudo バイパス。</p>
+        <p>`-sV -sC -p-`を実施した</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -144,7 +122,7 @@
 
       <a class="writeup-card" href="lazy-admin.html">
         <h2>Lazy Admin</h2>
-        <p>SweetRice CMS バックアップ漏洩、Web シェル、cron/sudo perl 権限昇格。</p>
+        <p>`nmap`</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -155,7 +133,7 @@
 
       <a class="writeup-card" href="juice-shop.html">
         <h2>OWASP Juice Shop</h2>
-        <p>OWASP Top 10 入門ルーム（Web アクセス未完了のメモ）。</p>
+        <p>Within this room, we will look at [OWASP&#x27;s TOP 10 vulnerabilities(opens in new tab)](https://owasp.o</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -166,7 +144,7 @@
 
       <a class="writeup-card" href="bolt.html">
         <h2>Bolt</h2>
-        <p>Bolt CMS (:8000)、認証情報漏洩、認証済み RCE、root シェル。</p>
+        <p>`nmap`を実施</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -177,7 +155,7 @@
 
       <a class="writeup-card" href="corridor.html">
         <h2>Corridor</h2>
-        <p>MD5 ハッシュ化されたルーム URL、IDOR（room 0）の調査（途中）。</p>
+        <p>`nmap`</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -188,7 +166,7 @@
 
       <a class="writeup-card" href="takeover.html">
         <h2>TakeOver</h2>
-        <p>サブドメイン列挙とテイクオーバー調査（途中）。</p>
+        <p>`nmap`を実施する</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Easy</span>
@@ -197,12 +175,34 @@
         </div>
       </a>
 
+      <a class="writeup-card" href="lianyu.html">
+        <h2>Lian_Yu</h2>
+        <p>$ nmap 10.49.165.104 -p- -T4</p>
+        <div class="tags">
+          <span class="tag">日本語</span>
+          <span class="tag">Easy</span>
+          <span class="tag">Linux</span>
+          
+        </div>
+      </a>
+
       <a class="writeup-card" href="mr-robot.html">
         <h2>Mr. Robot</h2>
-        <p>WordPress（Mr. Robot テーマ）、robots.txt、ハッシュクラック、権限昇格。</p>
+        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-27 14:22 +0900</p>
         <div class="tags">
           <span class="tag">日本語</span>
           <span class="tag">Medium</span>
+          <span class="tag">Linux</span>
+          
+        </div>
+      </a>
+
+      <a class="writeup-card" href="overpass.html">
+        <h2>Overpass</h2>
+        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-28 11:50 +0900</p>
+        <div class="tags">
+          <span class="tag">日本語</span>
+          <span class="tag">Easy</span>
           <span class="tag">Linux</span>
           
         </div>

