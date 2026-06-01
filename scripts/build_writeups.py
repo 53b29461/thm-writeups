@@ -39,7 +39,7 @@ FENCE_PATTERN = re.compile(r"(```.*?```)", re.DOTALL)
 
 
 # Attacker-side addresses (tun0 / LHOST) — not target lab IPs.
-TUN0_IP_PLACEHOLDER = "10.10.14.5"
+TUN0_IP_PLACEHOLDER = "<YOUR_TUN0_IP>"
 
 
 def anonymize(text: str) -> str:
