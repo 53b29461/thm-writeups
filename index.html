@@ -4,214 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>THM AI Writeups</title>
-  <link rel="stylesheet" href="assets/writeup.css">
   <style>
-    main { width: min(900px, calc(100% - 2rem)); }
-    .writeup-list { display: grid; gap: 1rem; }
-    .writeup-card {
-      display: block;
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: rgba(18, 26, 47, 0.82);
-      box-shadow: 0 18px 50px var(--shadow);
-      text-decoration: none;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .writeup-card:hover {
-      border-color: rgba(97, 218, 251, 0.45);
-      transform: translateY(-2px);
-    }
-    .writeup-card h2 { margin: 0 0 0.5rem; color: var(--accent); font-size: 1.5rem; }
-    .writeup-card p { margin: 0; color: var(--muted); }
-    .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
-    .tag {
-      padding: 0.25rem 0.65rem;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 0.85rem;
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.06);
-    }
+    body { font-family: sans-serif; text-align: center; margin: 3rem 1rem; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5rem 0; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <header class="hero">
-    <h1>THM AI Writeups</h1>
-    <p>Obsidian の原文ノートをそのまま公開。要約・編集なし。</p>
-  </header>
-
-  <main>
-    <div class="writeup-list">
-      <a class="writeup-card" href="hydra.html">
-        <h2>Hydra</h2>
-        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-05 13:10 +0900</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="overpass.html">
-        <h2>Overpass</h2>
-        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-28 11:50 +0900</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="mr-robot.html">
-        <h2>Mr. Robot</h2>
-        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-05-27 14:22 +0900</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Medium</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="lianyu.html">
-        <h2>Lian_Yu</h2>
-        <p>$ nmap 10.49.165.104 -p- -T4</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="takeover.html">
-        <h2>TakeOver</h2>
-        <p>`nmap`を実施する</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          <span class="tag">途中</span>
-        </div>
-      </a>
-
-      <a class="writeup-card" href="corridor.html">
-        <h2>Corridor</h2>
-        <p>`nmap`</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          <span class="tag">途中</span>
-        </div>
-      </a>
-
-      <a class="writeup-card" href="bolt.html">
-        <h2>Bolt</h2>
-        <p>`nmap`を実施</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="juice-shop.html">
-        <h2>OWASP Juice Shop</h2>
-        <p>Within this room, we will look at [OWASP&#x27;s TOP 10 vulnerabilities(opens in new tab)](https://owasp.o</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          <span class="tag">未完成</span>
-        </div>
-      </a>
-
-      <a class="writeup-card" href="lazy-admin.html">
-        <h2>Lazy Admin</h2>
-        <p>`nmap`</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="agent-sudo.html">
-        <h2>Agent Sudo</h2>
-        <p>`-sV -sC -p-`を実施した</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="brute-it.html">
-        <h2>Brute It</h2>
-        <p>`--script=vuln`</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="bounty-hacker.html">
-        <h2>Bounty Hacker</h2>
-        <p>`nmap --script=vuln`を実施</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="simple-ctf.html">
-        <h2>Simple CTF</h2>
-        <p>まずはオプションをつけずに`nmap`を実施する</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="blue.html">
-        <h2>Blue</h2>
-        <p>疎通を確認</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Windows</span>
-          
-        </div>
-      </a>
-
-      <a class="writeup-card" href="vulnversity.html">
-        <h2>Vulnversity</h2>
-        <p>Starting Nmap 7.99 ( https://nmap.org ) at 2026-04-24 10:02 +0900</p>
-        <div class="tags">
-          <span class="tag">日本語</span>
-          <span class="tag">Easy</span>
-          <span class="tag">Linux</span>
-          
-        </div>
-      </a>
-    </div>
-  </main>
-
-  <footer>
-    <p><a href="https://github.com/53b29461/thm-ai-writeups">GitHub Repository</a></p>
-  </footer>
+  <h1>THM Writeups</h1>
+  <ul>
+    <li><a href="hydra.html">Hydra</a></li>
+    <li><a href="overpass.html">Overpass</a></li>
+    <li><a href="mr-robot.html">Mr. Robot</a></li>
+    <li><a href="lianyu.html">Lian_Yu</a></li>
+    <li><a href="takeover.html">TakeOver</a></li>
+    <li><a href="corridor.html">Corridor</a></li>
+    <li><a href="bolt.html">Bolt</a></li>
+    <li><a href="juice-shop.html">OWASP Juice Shop</a></li>
+    <li><a href="lazy-admin.html">Lazy Admin</a></li>
+    <li><a href="agent-sudo.html">Agent Sudo</a></li>
+    <li><a href="brute-it.html">Brute It</a></li>
+    <li><a href="bounty-hacker.html">Bounty Hacker</a></li>
+    <li><a href="simple-ctf.html">Simple CTF</a></li>
+    <li><a href="blue.html">Blue</a></li>
+    <li><a href="vulnversity.html">Vulnversity</a></li>
+  </ul>
+  <p><a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
 </body>
 </html>
