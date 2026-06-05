@@ -31,6 +31,7 @@ ROOMS = [
     {"slug": "lianyu", "md": "013 Lianyu/013 Lianyu.md", "title": "Lian_Yu", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/lianyu", "difficulty": "Easy", "target": "Linux", "status": "complete"},
     {"slug": "mr-robot", "md": "014 MrRobot/014 MrRobot.md", "title": "Mr. Robot", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/mrrobot", "difficulty": "Medium", "target": "Linux", "status": "complete"},
     {"slug": "overpass", "md": "016 Overpass/016 Overpass.md", "title": "Overpass", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/overpass", "difficulty": "Easy", "target": "Linux", "status": "complete"},
+    {"slug": "hydra", "md": "018 Hydra/018 Hydra.md", "title": "Hydra", "lang": "ja", "lang_label": "日本語", "room_url": "https://tryhackme.com/room/hydra", "difficulty": "Easy", "target": "Linux", "status": "complete"},
 ]
 
 IMG_PATTERN = re.compile(r"!\[\[([^\]]+\.(?:png|jpg|jpeg|gif|webp))\]\]", re.IGNORECASE)
@@ -150,7 +151,6 @@ def render_page(room: dict, body_html: str) -> str:
 
   <header class="hero">
     <h1>{html.escape(room["title"])}</h1>
-    <p>Obsidian ノート原文 — 要約・編集なし</p>
     <div class="badges">
       <span class="badge">Platform: TryHackMe</span>
       <span class="badge">Difficulty: {html.escape(room["difficulty"])}</span>
@@ -179,90 +179,41 @@ def render_page(room: dict, body_html: str) -> str:
 
 
 def render_index(all_rooms: list[dict]) -> str:
-    cards = []
-    for room in all_rooms:
+    items = []
+    for room in reversed(all_rooms):
         href = f"{room['slug']}.html"
-        status_tag = ""
-        if room.get("status") == "partial":
-            status_tag = '<span class="tag">途中</span>'
-        elif room.get("status") == "stub":
-            status_tag = '<span class="tag">未完成</span>'
-        cards.append(
-            f"""      <a class="writeup-card" href="{html.escape(href)}">
-        <h2>{html.escape(room["title"])}</h2>
-        <p>{html.escape(room.get("desc", ""))}</p>
-        <div class="tags">
-          <span class="tag">{html.escape(room["lang_label"])}</span>
-          <span class="tag">{html.escape(room["difficulty"])}</span>
-          <span class="tag">{html.escape(room["target"])}</span>
-          {status_tag}
-        </div>
-      </a>"""
-        )
+        items.append(f'    <li><a href="{html.escape(href)}">{html.escape(room["title"])}</a></li>')
 
-    cards_html = "\n\n".join(cards)
+    items_html = "\n".join(items)
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>THM AI Writeups</title>
-  <link rel="stylesheet" href="assets/writeup.css">
   <style>
-    main {{ width: min(900px, calc(100% - 2rem)); }}
-    .writeup-list {{ display: grid; gap: 1rem; }}
-    .writeup-card {{
-      display: block;
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: rgba(18, 26, 47, 0.82);
-      box-shadow: 0 18px 50px var(--shadow);
-      text-decoration: none;
-      transition: border-color 0.2s, transform 0.2s;
-    }}
-    .writeup-card:hover {{
-      border-color: rgba(97, 218, 251, 0.45);
-      transform: translateY(-2px);
-    }}
-    .writeup-card h2 {{ margin: 0 0 0.5rem; color: var(--accent); font-size: 1.5rem; }}
-    .writeup-card p {{ margin: 0; color: var(--muted); }}
-    .tags {{ display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }}
-    .tag {{
-      padding: 0.25rem 0.65rem;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 0.85rem;
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.06);
-    }}
+    body {{ font-family: sans-serif; text-align: center; margin: 3rem 1rem; }}
+    ul {{ list-style: none; padding: 0; }}
+    li {{ margin: 0.5rem 0; }}
+    a {{ color: #0366d6; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
   </style>
 </head>
 <body>
-  <header class="hero">
-    <h1>THM AI Writeups</h1>
-    <p>Obsidian の原文ノートをそのまま公開。要約・編集なし。</p>
-  </header>
-
-  <main>
-    <div class="writeup-list">
-{cards_html}
-    </div>
-  </main>
-
-  <footer>
-    <p><a href="https://github.com/53b29461/thm-ai-writeups">GitHub Repository</a></p>
-  </footer>
+  <h1>THM Writeups</h1>
+  <ul>
+{items_html}
+  </ul>
+  <p><a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
 </body>
 </html>
 """
-
 
 def render_readme(all_rooms: list[dict]) -> str:
     lines = [
         "# thm-ai-writeups",
         "",
-        "TryHackMe room writeups — Obsidian ノート原文を HTML 化（要約・編集なし）。",
+        "TryHackMe room writeups — Obsidian ノート原文を HTML 化。",
         "",
         "**GitHub Pages:** https://53b29461.github.io/thm-ai-writeups/",
         "",
