@@ -5,32 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>THM AI Writeups</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin: 3rem 1rem; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 0.5rem 0; }
-    a { color: #0366d6; text-decoration: none; }
+    body { font-family: sans-serif; text-align: center; margin: 3rem 1rem; background: #0c1222; color: #ecf2ff; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #a8b3cc; margin-bottom: 2.5rem; font-size: 0.95rem; }
+    .category { margin: 2rem auto; max-width: 480px; text-align: left; }
+    .category h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #a8b3cc;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      padding-bottom: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+    .category.squad h2 { color: #46d369; border-bottom-color: #46d369; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { margin: 0.45rem 0; }
+    a { color: #61dafb; text-decoration: none; }
     a:hover { text-decoration: underline; }
+    footer { margin-top: 3rem; color: #a8b3cc; font-size: 0.85rem; }
   </style>
 </head>
 <body>
   <h1>THM Writeups</h1>
-  <ul>
-    <li><a href="hydra.html">Hydra</a></li>
-    <li><a href="overpass.html">Overpass</a></li>
-    <li><a href="mr-robot.html">Mr. Robot</a></li>
-    <li><a href="lianyu.html">Lian_Yu</a></li>
-    <li><a href="takeover.html">TakeOver</a></li>
-    <li><a href="corridor.html">Corridor</a></li>
-    <li><a href="bolt.html">Bolt</a></li>
-    <li><a href="juice-shop.html">OWASP Juice Shop</a></li>
-    <li><a href="lazy-admin.html">Lazy Admin</a></li>
-    <li><a href="agent-sudo.html">Agent Sudo</a></li>
-    <li><a href="brute-it.html">Brute It</a></li>
-    <li><a href="bounty-hacker.html">Bounty Hacker</a></li>
-    <li><a href="simple-ctf.html">Simple CTF</a></li>
-    <li><a href="blue.html">Blue</a></li>
-    <li><a href="vulnversity.html">Vulnversity</a></li>
-  </ul>
-  <p><a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
+  <p class="subtitle">TryHackMe 攻略メモ</p>
+
+  <div class="category squad">
+    <h2>班教育 WriteUp</h2>
+    <ul>
+      <li><a href="basic-pentesting-jt.html">Basic Pentesting: JT</a></li>
+      <li><a href="blue-squad.html">Blue (班教育)</a></li>
+      <li><a href="vulnversity-squad.html">Vulnversity (班教育)</a></li>
+      <li><a href="attacktive-directory.html">Attacktive Directory</a></li>
+    </ul>
+  </div>
+
+  <div class="category">
+    <h2>個人 WriteUp</h2>
+    <ul>
+      <li><a href="hydra.html">Hydra</a></li>
+      <li><a href="overpass.html">Overpass</a></li>
+      <li><a href="mr-robot.html">Mr. Robot</a></li>
+      <li><a href="lianyu.html">Lian_Yu</a></li>
+      <li><a href="takeover.html">TakeOver</a></li>
+      <li><a href="corridor.html">Corridor</a></li>
+      <li><a href="bolt.html">Bolt</a></li>
+      <li><a href="juice-shop.html">OWASP Juice Shop</a></li>
+      <li><a href="lazy-admin.html">Lazy Admin</a></li>
+      <li><a href="agent-sudo.html">Agent Sudo</a></li>
+      <li><a href="brute-it.html">Brute It</a></li>
+      <li><a href="bounty-hacker.html">Bounty Hacker</a></li>
+      <li><a href="simple-ctf.html">Simple CTF</a></li>
+      <li><a href="blue.html">Blue</a></li>
+      <li><a href="vulnversity.html">Vulnversity</a></li>
+    </ul>
+  </div>
+
+  <footer>
+    <p><a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
+  </footer>
 </body>
 </html>

